@@ -23,7 +23,6 @@ use CuyZ\Valinor\Type\Parser\Factory\Specifications\TypeAliasAssignerSpecificati
 use CuyZ\Valinor\Type\Parser\Factory\TypeParserFactory;
 use CuyZ\Valinor\Type\Parser\TypeParser;
 use CuyZ\Valinor\Type\Type;
-use CuyZ\Valinor\Type\Types\ClassType;
 use CuyZ\Valinor\Type\Types\InterfaceType;
 use CuyZ\Valinor\Type\ClassType;
 use CuyZ\Valinor\Type\Types\UnresolvableType;
@@ -173,7 +172,7 @@ final class ReflectionClassDefinitionRepository implements ClassDefinitionReposi
 
         foreach ($rawTypes as $name => $raw) {
             $typeParser = $this->typeParser($type, $types);
-    
+
             try {
                 $types[$name] = $typeParser->parse($raw);
             } catch (InvalidType $exception) {
