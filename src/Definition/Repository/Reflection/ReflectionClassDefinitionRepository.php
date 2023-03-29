@@ -230,7 +230,9 @@ final class ReflectionClassDefinitionRepository implements ClassDefinitionReposi
         $specs = [
             new ClassContextSpecification($type->className()),
             new AliasSpecification(Reflection::class($type->className())),
-            new TypeAliasAssignerSpecification($type->generics() + $aliases),
+            new TypeAliasAssignerSpecification(
+                ($type instanceof GenericType ? $type->generics() : []) + $aliases
+            ),
         ];
 
         return $this->typeParserFactory->get(...$specs);
