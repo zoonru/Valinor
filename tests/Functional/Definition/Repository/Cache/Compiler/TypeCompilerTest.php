@@ -121,6 +121,7 @@ final class TypeCompilerTest extends TestCase
         yield [new NonEmptyListType(NativeIntegerType::get())];
         yield [new NonEmptyListType(NativeStringType::get())];
         yield [new ShapedArrayType(
+            true,
             new ShapedArrayElement(new StringValueType('foo'), NativeStringType::get()),
             new ShapedArrayElement(new IntegerValueType(1337), NativeIntegerType::get(), true)
         )];

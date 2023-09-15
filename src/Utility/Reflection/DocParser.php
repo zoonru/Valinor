@@ -144,7 +144,7 @@ final class DocParser
 
         $templates = [];
 
-        preg_match_all("/@(phpstan-|psalm-)?template(?:-covariant)?\s+(\w+)(\s+of\s+([\w\s?|&<>'\",-:\\\\\[\]{}]+))?/", $doc, $matches);
+        preg_match_all("/@(phpstan-|psalm-)?template(?:-covariant)?\s+(?<name>\w+)(\s+of\s+(?<type>.+))?/", $doc, $matches);
 
         foreach ($matches['name'] as $key => $name) {
             /** @var string $name */

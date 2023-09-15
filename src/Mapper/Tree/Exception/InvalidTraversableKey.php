@@ -6,6 +6,7 @@ namespace CuyZ\Valinor\Mapper\Tree\Exception;
 
 use CuyZ\Valinor\Mapper\Tree\Message\ErrorMessage;
 use CuyZ\Valinor\Mapper\Tree\Message\HasParameters;
+use CuyZ\Valinor\Type\Type;
 use CuyZ\Valinor\Type\Types\ArrayKeyType;
 use CuyZ\Valinor\Utility\String\StringFormatter;
 use CuyZ\Valinor\Utility\TypeHelper;
@@ -20,7 +21,7 @@ final class InvalidTraversableKey extends RuntimeException implements ErrorMessa
     /** @var array<string, string> */
     private array $parameters;
 
-    public function __construct(string|int $key, ArrayKeyType $type)
+    public function __construct(string|int $key, Type $type)
     {
         $this->parameters = [
             'key' => ValueDumper::dump($key),

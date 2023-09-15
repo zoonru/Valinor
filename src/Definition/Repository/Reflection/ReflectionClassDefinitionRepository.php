@@ -25,7 +25,6 @@ use CuyZ\Valinor\Type\Parser\Factory\TypeParserFactory;
 use CuyZ\Valinor\Type\Parser\TypeParser;
 use CuyZ\Valinor\Type\Type;
 use CuyZ\Valinor\Type\Types\InterfaceType;
-use CuyZ\Valinor\Type\ClassType;
 use CuyZ\Valinor\Type\Types\UnresolvableType;
 use CuyZ\Valinor\Utility\Reflection\Reflection;
 use ReflectionClass;
@@ -81,7 +80,7 @@ final class ReflectionClassDefinitionRepository implements ClassDefinitionReposi
         $result = [];
         if ($magic) {
             foreach (Reflection::magicProperties(Reflection::class($type->className())) as $name => $property) {
-                $typeResolver = $this->typeResolver($type, $type->className());
+                $typeResolver = $this->typeResolver($type, Reflection::class($type->className()));
                 $result []= $this->propertyBuilder->forMagic(
                     $type->className(),
                     $name,
