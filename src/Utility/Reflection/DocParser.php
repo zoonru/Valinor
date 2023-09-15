@@ -22,6 +22,26 @@ use function trim;
 /** @internal */
 final class DocParser
 {
+    /**
+     * @param ReflectionClass<object> $reflection
+     * @return array<string, string>
+     */
+    public static function magicProperties(ReflectionClass $reflection): array
+    {
+        $types = [];
+        $docComment = self::sanitizeDocComment($reflection);
+
+        $expression = '/@property\s+(?<type>.+)\s+\$([a-zA-Z_0-9]+)/u';
+
+        preg_match_all($expression, $docComment, $matches);
+
+        foreach ($matches[2] as $key => $name) {
+            $types[(string)$name] = $matches[1][$key];
+        }
+
+        return $types;
+    }
+
     public static function propertyType(ReflectionProperty $reflection): ?string
     {
         $doc = self::sanitizeDocComment($reflection->getDocComment());
