@@ -79,7 +79,7 @@ final class ReflectionClassDefinitionRepository implements ClassDefinitionReposi
     {
         $result = [];
         if ($magic) {
-            foreach (Reflection::magicProperties(Reflection::class($type->className())) as $name => $property) {
+            foreach (DocParser::magicProperties(Reflection::class($type->className())) as $name => $property) {
                 $typeResolver = $this->typeResolver($type, Reflection::class($type->className()));
                 $result []= $this->propertyBuilder->forMagic(
                     $type->className(),
