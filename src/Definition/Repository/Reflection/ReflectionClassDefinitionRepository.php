@@ -29,7 +29,6 @@ use CuyZ\Valinor\Type\Types\UnresolvableType;
 use CuyZ\Valinor\Utility\Reflection\Reflection;
 use ReflectionClass;
 use ReflectionMethod;
-use ReflectionProperty;
 use CuyZ\Valinor\Utility\Reflection\DocParser;
 
 use function array_filter;
