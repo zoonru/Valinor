@@ -123,7 +123,7 @@ class PhpStanLocalAliases
 
     /** @var AliasShapedArrayKeyOf */
     public array $aliasShapedArrayKeyOf;
-    
+
     /** @var AliasShapedArrayMultiline */
     public array $aliasShapedArrayMultiline;
 
@@ -138,9 +138,7 @@ class PhpStanLocalAliases
  * @phpstan-type AliasShapedArrayNested = array{baz: AliasShapedArray}
  * @phpstan-type AliasGeneric = GenericObjectWithPhpStanLocalAlias<int>
  */
-interface PhpStanLocalAliasesInterface
-{
-}
+interface PhpStanLocalAliasesInterface {}
 
 /**
  * @phpstan-type AliasWithoutEqualsSign int
@@ -166,11 +164,15 @@ class PhpStanAliasImport
 
 /**
  * @phpstan-import-type AliasWithEqualsSign from PhpStanLocalAliasesInterface
+ * @phpstan-import-type AliasWithoutEqualsSign from PhpStanLocalAliasesInterface
  */
 class PhpStanAliasImportFromInterface
 {
     /** @var AliasWithEqualsSign */
-    public int $importedType;
+    public int $firstImportedType;
+
+    /** @var AliasWithoutEqualsSign */
+    public int $secondImportedType;
 }
 
 /**
@@ -230,9 +232,7 @@ class PsalmLocalAliases
  * @psalm-type AliasShapedArrayNested = array{baz: AliasShapedArray}
  * @psalm-type AliasGeneric = GenericObjectWithPsalmLocalAlias<int>
  */
-interface PsalmLocalAliasesInterface
-{
-}
+interface PsalmLocalAliasesInterface {}
 
 /**
  * @psalm-type AliasWithoutEqualsSign int
@@ -258,9 +258,13 @@ class PsalmAliasImport
 
 /**
  * @psalm-import-type AliasWithEqualsSign from PsalmLocalAliasesInterface
+ * @psalm-import-type AliasWithoutEqualsSign from PsalmLocalAliasesInterface
  */
 class PsalmAliasImportFromInterface
 {
     /** @var AliasWithEqualsSign */
-    public int $importedType;
+    public int $firstImportedType;
+
+    /** @var AliasWithoutEqualsSign */
+    public int $secondImportedType;
 }

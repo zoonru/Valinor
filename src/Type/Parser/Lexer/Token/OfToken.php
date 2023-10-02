@@ -22,8 +22,7 @@ final class OfToken implements TraversingToken
 
     private function __construct(
         private bool $key
-    ) {
-    }
+    ) {}
 
     public static function keyOf(): self
     {
@@ -45,6 +44,10 @@ final class OfToken implements TraversingToken
 
         if ($stream->done() || ! $stream->forward() instanceof ClosingBracketToken) {
             throw new ClosingBracketMissing($this->symbol());
+        }
+
+        if ($subType instanceof UnionType && count($subType->types()) === 1) {
+            $subType = $subType->types()[0];
         }
 
         if ($subType instanceof ShapedArrayType) {
