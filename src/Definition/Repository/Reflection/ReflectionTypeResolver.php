@@ -23,9 +23,8 @@ final class ReflectionTypeResolver
 {
     public function __construct(
         private TypeParser $nativeParser,
-        public TypeParser $advancedParser
-    ) {
-    }
+        private TypeParser $advancedParser
+    ) {}
 
     public function resolveType(ReflectionProperty|ReflectionParameter|ReflectionFunctionAbstract $reflection): Type
     {
@@ -49,7 +48,7 @@ final class ReflectionTypeResolver
             && ! $nativeType instanceof UnresolvableType
             && ! $typeFromDocBlock->matches($nativeType)
         ) {
-            //throw new TypesDoNotMatch($reflection, $typeFromDocBlock, $nativeType);
+            throw new TypesDoNotMatch($reflection, $typeFromDocBlock, $nativeType);
         }
 
         return $typeFromDocBlock;

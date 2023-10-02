@@ -58,14 +58,14 @@ final class ReflectionClassDefinitionRepository implements ClassDefinitionReposi
         $this->methodBuilder = new ReflectionMethodDefinitionBuilder($attributesFactory);
     }
 
-    public function for(ClassType $type, bool $magic = false): ClassDefinition
+    public function for(ClassType $type): ClassDefinition
     {
         $reflection = Reflection::class($type->className());
 
         return new ClassDefinition(
             $type,
             $this->attributesFactory->for($reflection),
-            new Properties(...$this->properties($type, $magic)),
+            new Properties(...$this->properties($type)),
             new Methods(...$this->methods($type)),
             $reflection->isFinal(),
             $reflection->isAbstract(),
@@ -75,7 +75,7 @@ final class ReflectionClassDefinitionRepository implements ClassDefinitionReposi
     /**
      * @return list<PropertyDefinition>
      */
-    private function properties(ClassType $type, bool $magic): array
+    private function properties(ClassType $type): array
     {
         $result = [];
         if ($magic) {
