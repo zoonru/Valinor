@@ -59,7 +59,7 @@ final class StringFormatter
         $message = $body;
 
         if (preg_match('/{\s*[^}]*[^}a-z_]+\s*}?/', $body)) {
-            throw new StringFormatterError($body, 'Invalid body');
+            throw new StringFormatterError($body);
         }
 
         foreach ($parameters as $name => $value) {

@@ -57,7 +57,7 @@ final class ArrayNodeBuilder implements NodeBuilder
             $child = $shell->child((string)$key, $subType);
 
             if (! $keyType->accepts($key)) {
-                $children[$key] = TreeNode::error($child, new InvalidTraversableKey((string) $key, $keyType));
+                $children[$key] = TreeNode::error($child, new InvalidTraversableKey($key, $keyType));
             } else {
                 $children[$key] = $rootBuilder->build($child->withValue($value));
             }
