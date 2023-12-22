@@ -72,6 +72,7 @@ final class AdvancedClassNameToken implements TraversingToken
         if ($parentReflection
             && $parentReflection->getName() !== \Zoon\ORM\Mongo\MongoMapper::class
             && $parentReflection->getName() !== \Zoon\ORM\Mysql\DataMapper::class
+            && $parentReflection->getName() !== \Zoon\ORM\ClickHouse\ClickHouseMapper::class
             && $parentReflection->getName() !== \Z\Module\Moderation\Orm\Contract\ModerationMapperBase::class
         ) {
             $parserWithGenerics = $this->typeParserFactory->get(new TypeAliasAssignerSpecification($generics), ...$specifications);
