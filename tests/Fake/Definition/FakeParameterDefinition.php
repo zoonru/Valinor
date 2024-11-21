@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace CuyZ\Valinor\Tests\Fake\Definition;
 
+use CuyZ\Valinor\Definition\Attributes;
 use CuyZ\Valinor\Definition\ParameterDefinition;
 use CuyZ\Valinor\Tests\Fake\Type\FakeType;
 use CuyZ\Valinor\Type\Type;
@@ -13,34 +14,44 @@ final class FakeParameterDefinition
 {
     private function __construct() {}
 
+    /**
+     * @param non-empty-string $name
+     */
     public static function new(string $name = 'someParameter', Type $type = null): ParameterDefinition
     {
         return new ParameterDefinition(
             $name,
             $name,
             $type ?? new FakeType(),
+            $type ?? new FakeType(),
             false,
             false,
             null,
-            new FakeAttributes()
+            new Attributes()
         );
     }
 
+    /**
+     * @param non-empty-string $name
+     */
     public static function optional(string $name, Type $type, mixed $defaultValue): ParameterDefinition
     {
         return new ParameterDefinition(
             $name,
             $name,
             $type,
+            $type,
             true,
             false,
             $defaultValue,
-            new FakeAttributes()
+            new Attributes()
         );
     }
 
     public static function fromReflection(ReflectionParameter $reflection): ParameterDefinition
     {
+        /** @var non-empty-string $name */
+        $name = $reflection->name;
         $type = new FakeType();
 
         if ($reflection->hasType()) {
@@ -48,13 +59,14 @@ final class FakeParameterDefinition
         }
 
         return new ParameterDefinition(
-            $reflection->name,
+            $name,
             'Signature::' . $reflection->name,
+            $type,
             $type,
             $reflection->isOptional(),
             $reflection->isVariadic(),
             $reflection->isDefaultValueAvailable() ? $reflection->getDefaultValue() : null,
-            new FakeAttributes()
+            new Attributes()
         );
     }
 }

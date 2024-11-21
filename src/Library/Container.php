@@ -9,17 +9,16 @@ use CuyZ\Valinor\Cache\KeySanitizerCache;
 use CuyZ\Valinor\Cache\RuntimeCache;
 use CuyZ\Valinor\Cache\Warmup\RecursiveCacheWarmupService;
 use CuyZ\Valinor\Definition\FunctionsContainer;
-use CuyZ\Valinor\Definition\Repository\AttributesRepository;
 use CuyZ\Valinor\Definition\Repository\Cache\CacheClassDefinitionRepository;
 use CuyZ\Valinor\Definition\Repository\Cache\CacheFunctionDefinitionRepository;
 use CuyZ\Valinor\Definition\Repository\ClassDefinitionRepository;
 use CuyZ\Valinor\Definition\Repository\FunctionDefinitionRepository;
-use CuyZ\Valinor\Definition\Repository\Reflection\NativeAttributesRepository;
+use CuyZ\Valinor\Definition\Repository\Reflection\ReflectionAttributesRepository;
 use CuyZ\Valinor\Definition\Repository\Reflection\ReflectionClassDefinitionRepository;
 use CuyZ\Valinor\Definition\Repository\Reflection\ReflectionFunctionDefinitionRepository;
 use CuyZ\Valinor\Mapper\ArgumentsMapper;
 use CuyZ\Valinor\Mapper\Object\Factory\CacheObjectBuilderFactory;
-use CuyZ\Valinor\Mapper\Object\Factory\CollisionObjectBuilderFactory;
+use CuyZ\Valinor\Mapper\Object\Factory\SortingObjectBuilderFactory;
 use CuyZ\Valinor\Mapper\Object\Factory\ConstructorObjectBuilderFactory;
 use CuyZ\Valinor\Mapper\Object\Factory\DateTimeObjectBuilderFactory;
 use CuyZ\Valinor\Mapper\Object\Factory\DateTimeZoneObjectBuilderFactory;
@@ -30,14 +29,14 @@ use CuyZ\Valinor\Mapper\Object\ObjectBuilder;
 use CuyZ\Valinor\Mapper\Tree\Builder\ArrayNodeBuilder;
 use CuyZ\Valinor\Mapper\Tree\Builder\CasterNodeBuilder;
 use CuyZ\Valinor\Mapper\Tree\Builder\CasterProxyNodeBuilder;
-use CuyZ\Valinor\Mapper\Tree\Builder\ObjectNodeBuilder;
 use CuyZ\Valinor\Mapper\Tree\Builder\ErrorCatcherNodeBuilder;
 use CuyZ\Valinor\Mapper\Tree\Builder\InterfaceNodeBuilder;
 use CuyZ\Valinor\Mapper\Tree\Builder\IterableNodeBuilder;
 use CuyZ\Valinor\Mapper\Tree\Builder\ListNodeBuilder;
+use CuyZ\Valinor\Mapper\Tree\Builder\ObjectNodeBuilder;
 use CuyZ\Valinor\Mapper\Tree\Builder\NodeBuilder;
+use CuyZ\Valinor\Mapper\Tree\Builder\NullNodeBuilder;
 use CuyZ\Valinor\Mapper\Tree\Builder\ObjectImplementations;
-use CuyZ\Valinor\Mapper\Tree\Builder\NativeClassNodeBuilder;
 use CuyZ\Valinor\Mapper\Tree\Builder\RootNodeBuilder;
 use CuyZ\Valinor\Mapper\Tree\Builder\ScalarNodeBuilder;
 use CuyZ\Valinor\Mapper\Tree\Builder\ShapedArrayNodeBuilder;
@@ -48,7 +47,14 @@ use CuyZ\Valinor\Mapper\Tree\Builder\ValueAlteringNodeBuilder;
 use CuyZ\Valinor\Mapper\TreeMapper;
 use CuyZ\Valinor\Mapper\TypeArgumentsMapper;
 use CuyZ\Valinor\Mapper\TypeTreeMapper;
-use CuyZ\Valinor\Type\ClassType;
+use CuyZ\Valinor\Normalizer\ArrayNormalizer;
+use CuyZ\Valinor\Normalizer\Format;
+use CuyZ\Valinor\Normalizer\JsonNormalizer;
+use CuyZ\Valinor\Normalizer\Normalizer;
+use CuyZ\Valinor\Normalizer\Transformer\KeyTransformersHandler;
+use CuyZ\Valinor\Normalizer\Transformer\RecursiveTransformer;
+use CuyZ\Valinor\Normalizer\Transformer\ValueTransformersHandler;
+use CuyZ\Valinor\Type\ObjectType;
 use CuyZ\Valinor\Type\Parser\Factory\LexingTypeParserFactory;
 use CuyZ\Valinor\Type\Parser\Factory\TypeParserFactory;
 use CuyZ\Valinor\Type\Parser\TypeParser;
@@ -58,10 +64,12 @@ use CuyZ\Valinor\Type\Types\IterableType;
 use CuyZ\Valinor\Type\Types\ListType;
 use CuyZ\Valinor\Type\Types\NonEmptyArrayType;
 use CuyZ\Valinor\Type\Types\NonEmptyListType;
+use CuyZ\Valinor\Type\Types\NullType;
 use CuyZ\Valinor\Type\Types\ShapedArrayType;
 use CuyZ\Valinor\Type\Types\ShapedListType;
 use Psr\SimpleCache\CacheInterface;
 
+use function array_keys;
 use function call_user_func;
 use function count;
 
@@ -79,12 +87,14 @@ final class Container
         $this->factories = [
             TreeMapper::class => fn () => new TypeTreeMapper(
                 $this->get(TypeParser::class),
-                $this->get(RootNodeBuilder::class)
+                $this->get(RootNodeBuilder::class),
+                $settings,
             ),
 
             ArgumentsMapper::class => fn () => new TypeArgumentsMapper(
                 $this->get(FunctionDefinitionRepository::class),
-                $this->get(RootNodeBuilder::class)
+                $this->get(RootNodeBuilder::class),
+                $settings,
             ),
 
             RootNodeBuilder::class => fn () => new RootNodeBuilder(
@@ -92,8 +102,8 @@ final class Container
             ),
 
             NodeBuilder::class => function () use ($settings) {
-                $listNodeBuilder = new ListNodeBuilder($settings->enableFlexibleCasting);
-                $arrayNodeBuilder = new ArrayNodeBuilder($settings->enableFlexibleCasting);
+                $listNodeBuilder = new ListNodeBuilder();
+                $arrayNodeBuilder = new ArrayNodeBuilder();
 
                 $builder = new CasterNodeBuilder([
                     ListType::class => $listNodeBuilder,
@@ -103,30 +113,24 @@ final class Container
                     IterableType::class => $arrayNodeBuilder,
                     ShapedArrayType::class => new ShapedArrayNodeBuilder($settings->allowSuperfluousKeys),
                     ShapedListType::class => new ShapedListNodeBuilder($settings->allowSuperfluousKeys),
-                    ScalarType::class => new ScalarNodeBuilder($settings->enableFlexibleCasting),
-                    ClassType::class => new NativeClassNodeBuilder(
+                    ScalarType::class => new ScalarNodeBuilder(),
+                    NullType::class => new NullNodeBuilder(),
+                    ObjectType::class => new ObjectNodeBuilder(
                         $this->get(ClassDefinitionRepository::class),
                         $this->get(ObjectBuilderFactory::class),
-                        $this->get(ObjectNodeBuilder::class),
-                        $settings->enableFlexibleCasting,
                     ),
                 ]);
 
-                $builder = new UnionNodeBuilder(
-                    $builder,
-                    $this->get(ClassDefinitionRepository::class),
-                    $this->get(ObjectBuilderFactory::class),
-                    $this->get(ObjectNodeBuilder::class),
-                    $settings->enableFlexibleCasting
-                );
+                $builder = new UnionNodeBuilder($builder);
 
                 $builder = new InterfaceNodeBuilder(
                     $builder,
                     $this->get(ObjectImplementations::class),
                     $this->get(ClassDefinitionRepository::class),
-                    $this->get(ObjectBuilderFactory::class),
-                    $this->get(ObjectNodeBuilder::class),
-                    $settings->enableFlexibleCasting
+                    new FunctionsContainer(
+                        $this->get(FunctionDefinitionRepository::class),
+                        $settings->customConstructors
+                    ),
                 );
 
                 $builder = new CasterProxyNodeBuilder($builder);
@@ -142,12 +146,10 @@ final class Container
                     );
                 }
 
-                $builder = new StrictNodeBuilder($builder, $settings->allowPermissiveTypes, $settings->enableFlexibleCasting);
+                $builder = new StrictNodeBuilder($builder);
 
                 return new ErrorCatcherNodeBuilder($builder, $settings->exceptionFilter);
             },
-
-            ObjectNodeBuilder::class => fn () => new ObjectNodeBuilder($settings->allowSuperfluousKeys),
 
             ObjectImplementations::class => fn () => new ObjectImplementations(
                 new FunctionsContainer(
@@ -167,7 +169,7 @@ final class Container
                 $factory = new ConstructorObjectBuilderFactory($factory, $settings->nativeConstructors, $constructors);
                 $factory = new DateTimeZoneObjectBuilderFactory($factory, $this->get(FunctionDefinitionRepository::class));
                 $factory = new DateTimeObjectBuilderFactory($factory, $settings->supportedDateFormats, $this->get(FunctionDefinitionRepository::class));
-                $factory = new CollisionObjectBuilderFactory($factory);
+                $factory = new SortingObjectBuilderFactory($factory);
 
                 if (! $settings->allowPermissiveTypes) {
                     $factory = new StrictTypesObjectBuilderFactory($factory);
@@ -179,27 +181,46 @@ final class Container
                 return new CacheObjectBuilderFactory($factory, $cache);
             },
 
+            RecursiveTransformer::class => fn () => new RecursiveTransformer(
+                $this->get(ClassDefinitionRepository::class),
+                new ValueTransformersHandler(
+                    $this->get(FunctionDefinitionRepository::class),
+                ),
+                new KeyTransformersHandler(),
+                $settings->transformersSortedByPriority(),
+                array_keys($settings->transformerAttributes),
+            ),
+
+            ArrayNormalizer::class => fn () => new ArrayNormalizer(
+                $this->get(RecursiveTransformer::class),
+            ),
+
+            JsonNormalizer::class => fn () => new JsonNormalizer(
+                $this->get(RecursiveTransformer::class),
+            ),
+
             ClassDefinitionRepository::class => fn () => new CacheClassDefinitionRepository(
                 new ReflectionClassDefinitionRepository(
                     $this->get(TypeParserFactory::class),
-                    $this->get(AttributesRepository::class),
+                    $settings->allowedAttributes(),
                 ),
-                $this->get(CacheInterface::class)
+                $this->get(CacheInterface::class),
             ),
 
             FunctionDefinitionRepository::class => fn () => new CacheFunctionDefinitionRepository(
                 new ReflectionFunctionDefinitionRepository(
                     $this->get(TypeParserFactory::class),
-                    $this->get(AttributesRepository::class),
+                    new ReflectionAttributesRepository(
+                        $this->get(ClassDefinitionRepository::class),
+                        $settings->allowedAttributes(),
+                    ),
                 ),
                 $this->get(CacheInterface::class)
             ),
 
-            AttributesRepository::class => fn () => new NativeAttributesRepository(),
-
             TypeParserFactory::class => fn () => new LexingTypeParserFactory(),
 
-            TypeParser::class => fn () => $this->get(TypeParserFactory::class)->get(),
+            TypeParser::class => fn () => $this->get(TypeParserFactory::class)->buildDefaultTypeParser(),
 
             RecursiveCacheWarmupService::class => fn () => new RecursiveCacheWarmupService(
                 $this->get(TypeParser::class),
@@ -229,6 +250,17 @@ final class Container
     public function argumentsMapper(): ArgumentsMapper
     {
         return $this->get(ArgumentsMapper::class);
+    }
+
+    /**
+     * @template T of Normalizer
+     *
+     * @param Format<T> $format
+     * @return T
+     */
+    public function normalizer(Format $format): Normalizer
+    {
+        return $this->get($format->type());
     }
 
     public function cacheWarmupService(): RecursiveCacheWarmupService

@@ -5,10 +5,9 @@ declare(strict_types=1);
 namespace CuyZ\Valinor\Tests\Integration\Mapping\Object;
 
 use CuyZ\Valinor\Mapper\MappingError;
-use CuyZ\Valinor\MapperBuilder;
-use CuyZ\Valinor\Tests\Integration\IntegrationTest;
+use CuyZ\Valinor\Tests\Integration\IntegrationTestCase;
 
-final class LocalTypeAliasMappingTest extends IntegrationTest
+final class LocalTypeAliasMappingTest extends IntegrationTestCase
 {
     public function test_values_are_mapped_properly(): void
     {
@@ -19,19 +18,6 @@ final class LocalTypeAliasMappingTest extends IntegrationTest
                 'foo' => 'foo',
                 'bar' => 1337,
             ],
-            'aliasShapedArrayNested' => [
-                'baz' => [
-                    'foo' => 'foo',
-                    'bar' => 1337,
-                ]
-            ],
-            'aliasShapedArrayNestedValueOf' => [
-                'foo' => 'foo',
-                'bar' => 1337,
-            ],
-            'aliasShapedArrayKeyOf' => [
-                'foo', 'bar'
-            ],
             'aliasShapedArrayMultiline' => [
                 'foo' => 'foo',
                 'bar' => 1337,
@@ -41,7 +27,7 @@ final class LocalTypeAliasMappingTest extends IntegrationTest
 
         foreach ([PhpStanLocalAliases::class, PsalmLocalAliases::class] as $class) {
             try {
-                $result = (new MapperBuilder())
+                $result = $this->mapperBuilder()
                     ->mapper()
                     ->map($class, $source);
 
@@ -58,22 +44,19 @@ final class LocalTypeAliasMappingTest extends IntegrationTest
 
     public function test_type_aliases_are_imported_correctly(): void
     {
-        foreach ([
-            PhpStanAliasImport::class,
-            PsalmAliasImport::class,
-            PhpStanAliasImportFromInterface::class,
-            PsalmAliasImportFromInterface::class
-        ] as $class) {
+        foreach ([PhpStanAliasImport::class, PsalmAliasImport::class] as $class) {
             try {
-                $result = (new MapperBuilder())
+                $result = $this->mapperBuilder()
                     ->mapper()
                     ->map($class, [
                         'firstImportedType' => 42,
                         'secondImportedType' => 1337,
+                        'thirdImportedType' => 404,
                     ]);
 
                 self::assertSame(42, $result->firstImportedType);
                 self::assertSame(1337, $result->secondImportedType);
+                self::assertSame(404, $result->thirdImportedType);
             } catch (MappingError $error) {
                 $this->mappingFail($error);
             }
@@ -92,6 +75,9 @@ class GenericObjectWithPhpStanLocalAlias
 }
 
 /**
+ * Comment:
+ * Some comment before types
+ *
  * @phpstan-type AliasWithEqualsSign = int
  * @phpstan-type AliasWithoutEqualsSign int
  * @phpstan-type AliasShapedArray = array{foo: string, bar: int}
@@ -100,9 +86,6 @@ class GenericObjectWithPhpStanLocalAlias
  *   bar: int
  * }
  * @phpstan-type AliasGeneric = GenericObjectWithPhpStanLocalAlias<int>
- * @phpstan-type AliasShapedArrayNested = array{baz: AliasShapedArray}
- * @phpstan-type AliasShapedArrayNestedValueOf = value-of<AliasShapedArrayNested>
- * @phpstan-type AliasShapedArrayKeyOf = list<key-of<AliasShapedArrayNestedValueOf>>
  */
 class PhpStanLocalAliases
 {
@@ -115,30 +98,12 @@ class PhpStanLocalAliases
     /** @var AliasShapedArray */
     public array $aliasShapedArray;
 
-    /** @var AliasShapedArrayNested */
-    public array $aliasShapedArrayNested;
-
-    /** @var AliasShapedArrayNestedValueOf */
-    public array $aliasShapedArrayNestedValueOf;
-
-    /** @var AliasShapedArrayKeyOf */
-    public array $aliasShapedArrayKeyOf;
-
     /** @var AliasShapedArrayMultiline */
     public array $aliasShapedArrayMultiline;
 
     /** @var AliasGeneric */
     public GenericObjectWithPhpStanLocalAlias $aliasGeneric;
 }
-
-/**
- * @phpstan-type AliasWithEqualsSign = int
- * @phpstan-type AliasWithoutEqualsSign int
- * @phpstan-type AliasShapedArray = array{foo: string, bar: int}
- * @phpstan-type AliasShapedArrayNested = array{baz: AliasShapedArray}
- * @phpstan-type AliasGeneric = GenericObjectWithPhpStanLocalAlias<int>
- */
-interface PhpStanLocalAliasesInterface {}
 
 /**
  * @phpstan-type AliasWithoutEqualsSign int
@@ -150,8 +115,17 @@ class AnotherPhpStanLocalAlias
 }
 
 /**
+ * @phpstan-type AliasOfInteger = int
+ */
+interface InterfaceWithPhpStanLocalAlias {}
+
+/**
+ * Comment:
+ * Some comment before import
+ *
  * @phpstan-import-type AliasWithEqualsSign from PhpStanLocalAliases
  * @phpstan-import-type AliasWithoutEqualsSign from AnotherPhpStanLocalAlias
+ * @phpstan-import-type AliasOfInteger from InterfaceWithPhpStanLocalAlias
  */
 class PhpStanAliasImport
 {
@@ -160,19 +134,9 @@ class PhpStanAliasImport
 
     /** @var AliasWithoutEqualsSign */
     public int $secondImportedType;
-}
 
-/**
- * @phpstan-import-type AliasWithEqualsSign from PhpStanLocalAliasesInterface
- * @phpstan-import-type AliasWithoutEqualsSign from PhpStanLocalAliasesInterface
- */
-class PhpStanAliasImportFromInterface
-{
-    /** @var AliasWithEqualsSign */
-    public int $firstImportedType;
-
-    /** @var AliasWithoutEqualsSign */
-    public int $secondImportedType;
+    /** @var AliasOfInteger */
+    public int $thirdImportedType;
 }
 
 /**
@@ -186,13 +150,12 @@ class GenericObjectWithPsalmLocalAlias
 }
 
 /**
- * Testing https://google.com
+ * Comment:
+ * Some comment before types
+ *
  * @psalm-type AliasWithEqualsSign = int
  * @psalm-type AliasWithoutEqualsSign int
  * @psalm-type AliasShapedArray = array{foo: string, bar: int}
- * @psalm-type AliasShapedArrayNested = array{baz: AliasShapedArray}
- * @phpstan-type AliasShapedArrayNestedValueOf = value-of<AliasShapedArrayNested>
- * @phpstan-type AliasShapedArrayKeyOf = list<key-of<AliasShapedArrayNestedValueOf>>
  * @psalm-type AliasShapedArrayMultiline = array{
  *   foo: string,
  *   bar: int
@@ -210,30 +173,12 @@ class PsalmLocalAliases
     /** @var AliasShapedArray */
     public array $aliasShapedArray;
 
-    /** @var AliasShapedArrayNested */
-    public array $aliasShapedArrayNested;
-
-    /** @var AliasShapedArrayNestedValueOf */
-    public array $aliasShapedArrayNestedValueOf;
-
-    /** @var AliasShapedArrayKeyOf */
-    public array $aliasShapedArrayKeyOf;
-
     /** @var AliasShapedArrayMultiline */
     public array $aliasShapedArrayMultiline;
 
     /** @var AliasGeneric */
     public GenericObjectWithPsalmLocalAlias $aliasGeneric;
 }
-
-/**
- * @psalm-type AliasWithEqualsSign = int
- * @psalm-type AliasWithoutEqualsSign int
- * @psalm-type AliasShapedArray = array{foo: string, bar: int}
- * @psalm-type AliasShapedArrayNested = array{baz: AliasShapedArray}
- * @psalm-type AliasGeneric = GenericObjectWithPsalmLocalAlias<int>
- */
-interface PsalmLocalAliasesInterface {}
 
 /**
  * @psalm-type AliasWithoutEqualsSign int
@@ -245,8 +190,17 @@ class AnotherPsalmLocalAliases
 }
 
 /**
+ * @phpstan-type AliasOfInteger = int
+ */
+interface InterfaceWithPsalmLocalAlias {}
+
+/**
+ * Comment:
+ * Some comment before import
+ *
  * @psalm-import-type AliasWithEqualsSign from PsalmLocalAliases
  * @psalm-import-type AliasWithoutEqualsSign from AnotherPsalmLocalAliases
+ * @psalm-import-type AliasOfInteger from InterfaceWithPsalmLocalAlias
  */
 class PsalmAliasImport
 {
@@ -255,17 +209,7 @@ class PsalmAliasImport
 
     /** @var AliasWithoutEqualsSign */
     public int $secondImportedType;
-}
 
-/**
- * @psalm-import-type AliasWithEqualsSign from PsalmLocalAliasesInterface
- * @psalm-import-type AliasWithoutEqualsSign from PsalmLocalAliasesInterface
- */
-class PsalmAliasImportFromInterface
-{
-    /** @var AliasWithEqualsSign */
-    public int $firstImportedType;
-
-    /** @var AliasWithoutEqualsSign */
-    public int $secondImportedType;
+    /** @var AliasOfInteger */
+    public int $thirdImportedType;
 }

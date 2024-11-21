@@ -10,6 +10,7 @@ use CuyZ\Valinor\Type\Type;
 use CuyZ\Valinor\Type\Types\ArrayKeyType;
 use CuyZ\Valinor\Type\Types\ArrayType;
 use CuyZ\Valinor\Type\Types\BooleanValueType;
+use CuyZ\Valinor\Type\Types\CallableType;
 use CuyZ\Valinor\Type\Types\ClassStringType;
 use CuyZ\Valinor\Type\Types\NativeClassType;
 use CuyZ\Valinor\Type\Types\FloatValueType;
@@ -29,12 +30,13 @@ use CuyZ\Valinor\Type\Types\NegativeIntegerType;
 use CuyZ\Valinor\Type\Types\NonEmptyArrayType;
 use CuyZ\Valinor\Type\Types\NonEmptyListType;
 use CuyZ\Valinor\Type\Types\NonEmptyStringType;
+use CuyZ\Valinor\Type\Types\NonNegativeIntegerType;
+use CuyZ\Valinor\Type\Types\NonPositiveIntegerType;
 use CuyZ\Valinor\Type\Types\NullType;
 use CuyZ\Valinor\Type\Types\NumericStringType;
 use CuyZ\Valinor\Type\Types\PositiveIntegerType;
 use CuyZ\Valinor\Type\Types\ShapedArrayElement;
 use CuyZ\Valinor\Type\Types\ShapedArrayType;
-use CuyZ\Valinor\Type\Types\ShapedListType;
 use CuyZ\Valinor\Type\Types\StringValueType;
 use CuyZ\Valinor\Type\Types\UndefinedObjectType;
 use CuyZ\Valinor\Type\Types\UnionType;
@@ -42,6 +44,7 @@ use CuyZ\Valinor\Type\Types\UnresolvableType;
 use DateTime;
 use DateTimeInterface;
 use Error;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 
@@ -56,9 +59,7 @@ final class TypeCompilerTest extends TestCase
         $this->typeCompiler = new TypeCompiler();
     }
 
-    /**
-     * @dataProvider type_is_compiled_correctly_data_provider
-     */
+    #[DataProvider('type_is_compiled_correctly_data_provider')]
     public function test_type_is_compiled_correctly(Type $type): void
     {
         $code = $this->typeCompiler->compile($type);
@@ -73,7 +74,7 @@ final class TypeCompilerTest extends TestCase
         self::assertSame($type->toString(), $compiledType->toString());
     }
 
-    public function type_is_compiled_correctly_data_provider(): iterable
+    public static function type_is_compiled_correctly_data_provider(): iterable
     {
         yield [NullType::get()];
         yield [BooleanValueType::true()];
@@ -85,6 +86,8 @@ final class TypeCompilerTest extends TestCase
         yield [NativeIntegerType::get()];
         yield [PositiveIntegerType::get()];
         yield [NegativeIntegerType::get()];
+        yield [NonPositiveIntegerType::get()];
+        yield [NonNegativeIntegerType::get()];
         yield [new IntegerValueType(1337)];
         yield [new IntegerValueType(-1337)];
         yield [new IntegerRangeType(42, 1337)];
@@ -98,12 +101,8 @@ final class TypeCompilerTest extends TestCase
         yield [new InterfaceType(DateTimeInterface::class, ['Template' => NativeStringType::get()])];
         yield [new NativeClassType(stdClass::class, ['Template' => NativeStringType::get()])];
         yield [new IntersectionType(new InterfaceType(DateTimeInterface::class), new NativeClassType(DateTime::class))];
-
-        if (PHP_VERSION_ID >= 8_01_00) {
-            yield [EnumType::native(PureEnum::class)];
-            yield [EnumType::fromPattern(PureEnum::class, 'BA*')];
-        }
-
+        yield [EnumType::native(PureEnum::class)];
+        yield [EnumType::fromPattern(PureEnum::class, 'BA*')];
         yield [new UnionType(NativeStringType::get(), NativeIntegerType::get(), NativeFloatType::get())];
         yield [ArrayType::native()];
         yield [new ArrayType(ArrayKeyType::default(), NativeFloatType::get())];
@@ -122,26 +121,17 @@ final class TypeCompilerTest extends TestCase
         yield [new NonEmptyListType(NativeIntegerType::get())];
         yield [new NonEmptyListType(NativeStringType::get())];
         yield [new ShapedArrayType(
-            null,
-            null,
             new ShapedArrayElement(new StringValueType('foo'), NativeStringType::get()),
             new ShapedArrayElement(new IntegerValueType(1337), NativeIntegerType::get(), true)
         )];
-        yield [new ShapedArrayType(
-            ArrayKeyType::default(),
-            NativeStringType::get(),
+        yield [ShapedArrayType::unsealedWithoutType(
             new ShapedArrayElement(new StringValueType('foo'), NativeStringType::get()),
             new ShapedArrayElement(new IntegerValueType(1337), NativeIntegerType::get(), true)
         )];
-        yield [new ShapedListType(
-            null,
-            new ShapedArrayElement(new IntegerValueType(0), NativeStringType::get()),
-            new ShapedArrayElement(new IntegerValueType(1), NativeIntegerType::get(), true)
-        )];
-        yield [new ShapedListType(
-            NativeStringType::get(),
-            new ShapedArrayElement(new IntegerValueType(0), NativeStringType::get()),
-            new ShapedArrayElement(new IntegerValueType(1), NativeIntegerType::get(), true)
+        yield [ShapedArrayType::unsealed(
+            new ArrayType(ArrayKeyType::default(), NativeFloatType::get()),
+            new ShapedArrayElement(new StringValueType('foo'), NativeStringType::get()),
+            new ShapedArrayElement(new IntegerValueType(1337), NativeIntegerType::get(), true)
         )];
         yield [new IterableType(ArrayKeyType::default(), NativeFloatType::get())];
         yield [new IterableType(ArrayKeyType::integer(), NativeIntegerType::get())];
@@ -149,28 +139,7 @@ final class TypeCompilerTest extends TestCase
         yield [new ClassStringType()];
         yield [new ClassStringType(new NativeClassType(stdClass::class))];
         yield [new ClassStringType(new InterfaceType(DateTimeInterface::class))];
+        yield [new CallableType()];
         yield [new UnresolvableType('some-type', 'some message')];
-    }
-
-    public function test_class_parent_is_compiled_properly(): void
-    {
-        $type = new NativeClassType(
-            stdClass::class,
-            parent: new NativeClassType(
-                stdClass::class,
-                ['Template' => NativeStringType::get()],
-            )
-        );
-
-        $code = $this->typeCompiler->compile($type);
-
-        try {
-            $compiledType = eval("return $code;");
-        } catch (Error $exception) {
-            self::fail($exception->getMessage());
-        }
-
-        self::assertInstanceOf(NativeClassType::class, $compiledType);
-        self::assertInstanceOf(NativeStringType::class, $compiledType->parent()->generics()['Template']);
     }
 }

@@ -12,13 +12,13 @@ jobs:
           - "highest"
           - "locked"
         php-version:
-          - "8.0"
           - "8.1"
           - "8.2"
           - "8.3"
+          - "8.4"
 
     env:
-      php-extensions: yaml
+      php-extensions: ds,yaml
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -34,6 +34,7 @@ jobs:
       - uses: "ramsey/composer-install@v2"
         with:
           dependency-versions: ${{ matrix.dependencies }}
+          composer-options: "--ignore-platform-reqs" # Remove when Psalm supports PHP 8.4 / @see https://github.com/vimeo/psalm/pull/10928
 
       - name: Running unit tests
         run: php vendor/bin/phpunit --testsuite=unit

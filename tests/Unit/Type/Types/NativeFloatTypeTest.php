@@ -10,6 +10,7 @@ use CuyZ\Valinor\Tests\Traits\TestIsSingleton;
 use CuyZ\Valinor\Type\Types\MixedType;
 use CuyZ\Valinor\Type\Types\NativeFloatType;
 use CuyZ\Valinor\Type\Types\UnionType;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 
@@ -29,13 +30,13 @@ final class NativeFloatTypeTest extends TestCase
     public function test_accepts_correct_values(): void
     {
         self::assertTrue($this->floatType->accepts(42.1337));
-        self::assertTrue($this->floatType->accepts(404));
     }
 
     public function test_does_not_accept_incorrect_values(): void
     {
         self::assertFalse($this->floatType->accepts(null));
         self::assertFalse($this->floatType->accepts('Schwifty!'));
+        self::assertFalse($this->floatType->accepts(404));
         self::assertFalse($this->floatType->accepts(['foo' => 'bar']));
         self::assertFalse($this->floatType->accepts(false));
         self::assertFalse($this->floatType->accepts(new stdClass()));
@@ -57,15 +58,13 @@ final class NativeFloatTypeTest extends TestCase
         self::assertFalse($this->floatType->canCast(new stdClass()));
     }
 
-    /**
-     * @dataProvider cast_value_returns_correct_result_data_provider
-     */
+    #[DataProvider('cast_value_returns_correct_result_data_provider')]
     public function test_cast_value_returns_correct_result(mixed $value, float $expected): void
     {
         self::assertSame($expected, $this->floatType->cast($value));
     }
 
-    public function cast_value_returns_correct_result_data_provider(): array
+    public static function cast_value_returns_correct_result_data_provider(): array
     {
         return [
             'Float from integer' => [

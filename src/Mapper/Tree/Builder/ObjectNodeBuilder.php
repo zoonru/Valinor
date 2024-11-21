@@ -4,39 +4,72 @@ declare(strict_types=1);
 
 namespace CuyZ\Valinor\Mapper\Tree\Builder;
 
+use CuyZ\Valinor\Definition\Repository\ClassDefinitionRepository;
 use CuyZ\Valinor\Mapper\Object\ArgumentsValues;
+use CuyZ\Valinor\Mapper\Object\Exception\CannotFindObjectBuilder;
+use CuyZ\Valinor\Mapper\Object\Exception\InvalidSource;
+use CuyZ\Valinor\Mapper\Object\Factory\ObjectBuilderFactory;
 use CuyZ\Valinor\Mapper\Object\ObjectBuilder;
-use CuyZ\Valinor\Mapper\Tree\Exception\UnexpectedArrayKeysForClass;
 use CuyZ\Valinor\Mapper\Tree\Shell;
+use CuyZ\Valinor\Type\ObjectType;
 
+use function assert;
 use function count;
 
 /** @internal */
-final class ObjectNodeBuilder
+final class ObjectNodeBuilder implements NodeBuilder
 {
-    public function __construct(private bool $allowSuperfluousKeys) {}
+    public function __construct(
+        private ClassDefinitionRepository $classDefinitionRepository,
+        private ObjectBuilderFactory $objectBuilderFactory,
+    ) {}
 
-    public function build(ObjectBuilder $builder, Shell $shell, RootNodeBuilder $rootBuilder): TreeNode
+    public function build(Shell $shell, RootNodeBuilder $rootBuilder): TreeNode
     {
-        $arguments = ArgumentsValues::forClass($builder->describeArguments(), $shell->value());
+        $type = $shell->type();
 
-        $children = $this->children($shell, $arguments, $rootBuilder);
+        // @infection-ignore-all
+        assert($type instanceof ObjectType);
 
-        $object = $this->buildObject($builder, $children);
-
-        $node = $arguments->hadSingleArgument()
-            ? TreeNode::flattenedBranch($shell, $object, $children[0])
-            : TreeNode::branch($shell, $object, $children);
-
-        if (! $this->allowSuperfluousKeys && count($arguments->superfluousKeys()) > 0) {
-            $node = $node->withMessage(new UnexpectedArrayKeysForClass($arguments));
+        if ($shell->enableFlexibleCasting() && $shell->value() === null) {
+            $shell = $shell->withValue([]);
         }
 
-        return $node;
+        $class = $this->classDefinitionRepository->for($type);
+        $builders = $this->objectBuilderFactory->for($class);
+
+        foreach ($builders as $builder) {
+            $argumentsValues = ArgumentsValues::forClass($builder->describeArguments(), $shell);
+
+            if ($argumentsValues->hasInvalidValue()) {
+                if (count($builders) === 1) {
+                    return TreeNode::error($shell, new InvalidSource($shell->value(), $builder->describeArguments()));
+                }
+
+                continue;
+            }
+
+            $children = $this->children($shell, $argumentsValues, $rootBuilder);
+
+            $object = $this->buildObject($builder, $children);
+
+            if ($argumentsValues->hadSingleArgument()) {
+                $node = TreeNode::flattenedBranch($shell, $object, $children[0]);
+            } else {
+                $node = TreeNode::branch($shell, $object, $children);
+                $node = $node->checkUnexpectedKeys();
+            }
+
+            if ($node->isValid() || count($builders) === 1) {
+                return $node;
+            }
+        }
+
+        throw new CannotFindObjectBuilder($builders);
     }
 
     /**
-     * @return array<TreeNode>
+     * @return list<TreeNode>
      */
     private function children(Shell $shell, ArgumentsValues $arguments, RootNodeBuilder $rootBuilder): array
     {
@@ -60,7 +93,7 @@ final class ObjectNodeBuilder
     }
 
     /**
-     * @param TreeNode[] $children
+     * @param list<TreeNode> $children
      */
     private function buildObject(ObjectBuilder $builder, array $children): ?object
     {

@@ -7,21 +7,13 @@ namespace CuyZ\Valinor\Utility\Reflection;
 use Closure;
 use ReflectionClass;
 use ReflectionFunction;
-use ReflectionIntersectionType;
-use ReflectionMethod;
-use ReflectionNamedType;
-use ReflectionParameter;
-use ReflectionProperty;
-use ReflectionType;
-use ReflectionUnionType;
-use Reflector;
-use RuntimeException;
+use UnitEnum;
 
 use function class_exists;
-use function implode;
+use function enum_exists;
 use function interface_exists;
+use function ltrim;
 use function spl_object_hash;
-use function str_contains;
 
 /** @internal */
 final class Reflection
@@ -32,16 +24,31 @@ final class Reflection
     /** @var array<string, ReflectionFunction> */
     private static array $functionReflection = [];
 
+    /** @var array<string, bool> */
+    private static array $classOrInterfaceExists = [];
+
+    /** @var array<string, bool> */
+    private static array $enumExists = [];
+
     /**
      * Case-sensitive implementation of `class_exists` and `interface_exists`.
+     *
+     * @phpstan-assert-if-true class-string $name
      */
     public static function classOrInterfaceExists(string $name): bool
     {
-        if (! class_exists($name) && ! interface_exists($name)) {
-            return false;
-        }
+        // @infection-ignore-all / We don't need to test the cache
+        return self::$classOrInterfaceExists[$name] ??= (class_exists($name) || interface_exists($name))
+            && self::class($name)->name === ltrim($name, '\\');
+    }
 
-        return self::class($name)->name === ltrim($name, '\\');
+    /**
+     * @phpstan-assert-if-true class-string<UnitEnum> $name
+     */
+    public static function enumExists(string $name): bool
+    {
+        // @infection-ignore-all / We don't need to test the cache
+        return self::$enumExists[$name] ??= enum_exists($name);
     }
 
     /**
@@ -58,68 +65,5 @@ final class Reflection
         $closure = Closure::fromCallable($function);
 
         return self::$functionReflection[spl_object_hash($closure)] ??= new ReflectionFunction($closure);
-    }
-
-    public static function signature(Reflector $reflection): string
-    {
-        if ($reflection instanceof ReflectionClass) {
-            return $reflection->name;
-        }
-
-        if ($reflection instanceof ReflectionProperty) {
-            return "{$reflection->getDeclaringClass()->name}::\$$reflection->name";
-        }
-
-        if ($reflection instanceof ReflectionMethod) {
-            return "{$reflection->getDeclaringClass()->name}::$reflection->name()";
-        }
-
-        if ($reflection instanceof ReflectionFunction) {
-            if (str_contains($reflection->name, '{closure}')) {
-                $startLine = $reflection->getStartLine();
-                $endLine = $reflection->getEndLine();
-
-                return $startLine === $endLine
-                    ? "Closure (line $startLine of {$reflection->getFileName()})"
-                    : "Closure (lines $startLine to $endLine of {$reflection->getFileName()})";
-            }
-
-            return $reflection->getClosureScopeClass()
-                ? $reflection->getClosureScopeClass()->name . '::' . $reflection->name . '()'
-                : $reflection->name . '()';
-        }
-
-        if ($reflection instanceof ReflectionParameter) {
-            $signature = $reflection->getDeclaringFunction()->name . "(\$$reflection->name)";
-            $class = $reflection->getDeclaringClass();
-
-            if ($class) {
-                $signature = $class->name . '::' . $signature;
-            }
-
-            return $signature;
-        }
-
-        throw new RuntimeException('Invalid reflection type `' . $reflection::class . '`.');
-    }
-
-    public static function flattenType(ReflectionType $type): string
-    {
-        if ($type instanceof ReflectionUnionType) {
-            return implode('|', $type->getTypes());
-        }
-
-        if ($type instanceof ReflectionIntersectionType) {
-            return implode('&', $type->getTypes());
-        }
-
-        /** @var ReflectionNamedType $type */
-        $name = $type->getName();
-
-        if ($name !== 'null' && $type->allowsNull() && $name !== 'mixed') {
-            return $name . '|null';
-        }
-
-        return $name;
     }
 }

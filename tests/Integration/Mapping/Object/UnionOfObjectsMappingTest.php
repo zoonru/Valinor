@@ -5,18 +5,16 @@ declare(strict_types=1);
 namespace CuyZ\Valinor\Tests\Integration\Mapping\Object;
 
 use CuyZ\Valinor\Mapper\MappingError;
-use CuyZ\Valinor\MapperBuilder;
-use CuyZ\Valinor\Tests\Integration\IntegrationTest;
+use CuyZ\Valinor\Tests\Integration\IntegrationTestCase;
 
-final class UnionOfObjectsMappingTest extends IntegrationTest
+final class UnionOfObjectsMappingTest extends IntegrationTestCase
 {
     public function test_objects_sharing_one_property_are_resolved_correctly(): void
     {
         try {
-            $result = (new MapperBuilder())
-                // PHP8.1 first-class callable syntax
-                ->registerConstructor([SomeFooAndBarObject::class, 'constructorA'])
-                ->registerConstructor([SomeFooAndBarObject::class, 'constructorB'])
+            $result = $this->mapperBuilder()
+                ->registerConstructor(SomeFooAndBarObject::constructorA(...))
+                ->registerConstructor(SomeFooAndBarObject::constructorB(...))
                 ->mapper()
                 ->map(UnionOfFooAndBarAndFoo::class, [
                     'foo',
@@ -33,7 +31,7 @@ final class UnionOfObjectsMappingTest extends IntegrationTest
     public function test_mapping_to_union_of_null_and_objects_can_infer_object(): void
     {
         try {
-            $result = (new MapperBuilder())
+            $result = $this->mapperBuilder()
                 ->mapper()
                 ->map(
                     'null|' . SomeObjectWithFooAndBar::class . '|' . SomeObjectWithBazAndFiz::class,
@@ -51,27 +49,7 @@ final class UnionOfObjectsMappingTest extends IntegrationTest
         self::assertSame('fiz', $result->fiz);
     }
 
-    /**
-     *
-     * @dataProvider mapping_error_when_cannot_resolve_union_data_provider
-     *
-     * @param class-string $className
-     * @param mixed[] $source
-     */
-    public function test_mapping_error_when_cannot_resolve_union(string $className, array $source): void
-    {
-        try {
-            (new MapperBuilder())->mapper()->map($className, $source);
-
-            self::fail('No mapping error when one was expected');
-        } catch (MappingError $exception) {
-            $error = $exception->node()->children()[0]->messages()[0];
-
-            self::assertSame('1642787246', $error->code());
-        }
-    }
-
-    public function mapping_error_when_cannot_resolve_union_data_provider(): iterable
+    public static function mapping_error_when_cannot_resolve_union_data_provider(): iterable
     {
         yield [
             'className' => UnionOfFooAndBar::class,
@@ -84,46 +62,39 @@ final class UnionOfObjectsMappingTest extends IntegrationTest
     }
 }
 
-// PHP8.1 Readonly properties
 final class UnionOfFooAndBar
 {
     /** @var array<SomeFooObject|SomeBarObject> */
     public array $objects;
 }
 
-// PHP8.1 Readonly properties
 final class UnionOfFooAndAnotherFoo
 {
     /** @var array<SomeFooObject|SomeOtherFooObject> */
     public array $objects;
 }
 
-// PHP8.1 Readonly properties
 final class UnionOfFooAndBarAndFoo
 {
     /** @var array<SomeFooAndBarObject|SomeFooObject> */
     public array $objects;
 }
 
-// PHP8.1 Readonly properties
 final class SomeFooObject
 {
     public string $foo;
 }
 
-// PHP8.1 Readonly properties
 final class SomeOtherFooObject
 {
     public string $foo;
 }
 
-// PHP8.1 Readonly properties
 final class SomeBarObject
 {
     public string $bar;
 }
 
-// PHP8.1 Readonly properties
 final class SomeFooAndBarObject
 {
     public string $foo;

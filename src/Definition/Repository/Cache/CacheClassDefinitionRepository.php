@@ -6,7 +6,7 @@ namespace CuyZ\Valinor\Definition\Repository\Cache;
 
 use CuyZ\Valinor\Definition\ClassDefinition;
 use CuyZ\Valinor\Definition\Repository\ClassDefinitionRepository;
-use CuyZ\Valinor\Type\ClassType;
+use CuyZ\Valinor\Type\ObjectType;
 use Psr\SimpleCache\CacheInterface;
 
 /** @internal */
@@ -18,9 +18,10 @@ final class CacheClassDefinitionRepository implements ClassDefinitionRepository
         private CacheInterface $cache
     ) {}
 
-    public function for(ClassType $type): ClassDefinition
+    public function for(ObjectType $type): ClassDefinition
     {
-        $key = "class-definition-{$type->toString()}";
+        // @infection-ignore-all
+        $key = "class-definition-\0" . $type->toString();
 
         $entry = $this->cache->get($key);
 

@@ -3,10 +3,15 @@
 namespace CuyZ\Valinor\Type;
 
 /** @internal */
-interface GenericType extends CompositeType
+interface GenericType extends ObjectType, CompositeType
 {
     /**
-     * @return array<string, Type>
+     * @return class-string
+     */
+    public function className(): string;
+
+    /**
+     * @return array<non-empty-string, Type>
      */
     public function generics(): array;
 }

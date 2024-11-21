@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace CuyZ\Valinor\Definition\Repository\Cache\Compiler;
 
 use CuyZ\Valinor\Definition\Attributes;
-use CuyZ\Valinor\Definition\AttributesContainer;
-use CuyZ\Valinor\Definition\NativeAttributes;
 
+use function array_map;
 use function count;
 use function implode;
 use function is_array;
@@ -17,55 +16,64 @@ use function var_export;
 /** @internal */
 final class AttributesCompiler
 {
+    public function __construct(private ClassDefinitionCompiler $classDefinitionCompiler) {}
+
     public function compile(Attributes $attributes): string
     {
         if (count($attributes) === 0) {
             return '\\'.AttributesContainer::class . '::empty()';
         }
 
-        assert($attributes instanceof NativeAttributes);
-
-        $attributesListCode = $this->compileNativeAttributes($attributes);
+        $attributesListCode = $this->compileAttributes($attributes);
 
         return <<<PHP
-            new \CuyZ\Valinor\Definition\AttributesContainer($attributesListCode)
+            new \CuyZ\Valinor\Definition\Attributes($attributesListCode)
             PHP;
     }
 
-    private function compileNativeAttributes(NativeAttributes $attributes): string
+    private function compileAttributes(Attributes $attributes): string
     {
         $attributesListCode = [];
 
-        foreach ($attributes->definition() as $className => $arguments) {
-            $argumentsCode = $this->compileAttributeArguments($arguments);
+        foreach ($attributes as $attribute) {
+            $class = $this->classDefinitionCompiler->compile($attribute->class);
 
-            $attributesListCode[] = "['class' => '$className', 'callback' => fn () => new $className($argumentsCode)]";
+            if ($attribute->arguments === []) {
+                $arguments = '';
+            } else {
+                $arguments = implode(', ', array_map(
+                    fn (mixed $argument) => $this->compileAttributeArguments($argument),
+                    $attribute->arguments,
+                ));
+            }
+
+            $attributesListCode[] = <<<PHP
+            new \CuyZ\Valinor\Definition\AttributeDefinition(
+                $class,
+                [$arguments],
+            )
+            PHP;
         }
 
         return implode(', ', $attributesListCode);
     }
 
-    /**
-     * @param array<mixed> $arguments
-     */
-    private function compileAttributeArguments(array $arguments): string
+    private function compileAttributeArguments(mixed $value): string
     {
-        if (count($arguments) === 0) {
-            return '';
+        if (is_object($value)) {
+            return 'unserialize(' . var_export(serialize($value), true) . ')';
         }
 
-        $argumentsCode = [];
+        if (is_array($value)) {
+            $parts = [];
 
-        foreach ($arguments as $argument) {
-            if (is_object($argument)) {
-                $argumentsCode[] = 'unserialize(' . var_export(serialize($argument), true) . ')';
-            } elseif (is_array($argument)) {
-                $argumentsCode[] = '[' . $this->compileAttributeArguments($argument) . ']';
-            } else {
-                $argumentsCode[] = var_export($argument, true);
+            foreach ($value as $key => $subValue) {
+                $parts[] = var_export($key, true) . ' => ' . $this->compileAttributeArguments($subValue);
             }
+
+            return '[' . implode(', ', $parts) . ']';
         }
 
-        return implode(', ', $argumentsCode);
+        return var_export($value, true);
     }
 }

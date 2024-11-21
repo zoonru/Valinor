@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace CuyZ\Valinor\Tests\Integration\Mapping\Object;
 
 use CuyZ\Valinor\Mapper\MappingError;
-use CuyZ\Valinor\MapperBuilder;
-use CuyZ\Valinor\Tests\Integration\IntegrationTest;
+use CuyZ\Valinor\Tests\Integration\IntegrationTestCase;
 use CuyZ\Valinor\Tests\Integration\Mapping\Fixture\SimpleObject;
 use stdClass;
 
-final class ObjectValuesMappingTest extends IntegrationTest
+final class ObjectValuesMappingTest extends IntegrationTestCase
 {
     public function test_values_are_mapped_properly(): void
     {
@@ -21,7 +20,7 @@ final class ObjectValuesMappingTest extends IntegrationTest
 
         foreach ([ObjectValues::class, ObjectValuesWithConstructor::class] as $class) {
             try {
-                $result = (new MapperBuilder())->mapper()->map($class, $source);
+                $result = $this->mapperBuilder()->mapper()->map($class, $source);
             } catch (MappingError $error) {
                 $this->mappingFail($error);
             }
@@ -36,7 +35,7 @@ final class ObjectValuesMappingTest extends IntegrationTest
 
         foreach ([ObjectValues::class, ObjectValuesWithConstructor::class] as $class) {
             try {
-                (new MapperBuilder())->mapper()->map($class, $source);
+                $this->mapperBuilder()->mapper()->map($class, $source);
             } catch (MappingError $exception) {
                 $error = $exception->node()->messages()[0];
 
@@ -49,7 +48,7 @@ final class ObjectValuesMappingTest extends IntegrationTest
     public function test_superfluous_values_throws_exception_and_keeps_nested_errors(): void
     {
         try {
-            (new MapperBuilder())->mapper()->map(ObjectWithTwoProperties::class, [
+            $this->mapperBuilder()->mapper()->map(ObjectWithTwoProperties::class, [
                 'stringA' => 42,
                 'stringB' => 'fooB',
                 'unexpectedValueA' => 'foo',
@@ -60,7 +59,7 @@ final class ObjectValuesMappingTest extends IntegrationTest
             $rootError = $exception->node()->messages()[0];
             $nestedError = $exception->node()->children()['stringA']->messages()[0];
 
-            self::assertSame('1655149208', $rootError->code());
+            self::assertSame('1655117782', $rootError->code());
             self::assertSame('Unexpected key(s) `unexpectedValueA`, `unexpectedValueB`, `42`, expected `stringA`, `stringB`.', (string)$rootError);
             self::assertSame('Value 42 is not a valid string.', (string)$nestedError);
         }
@@ -69,7 +68,7 @@ final class ObjectValuesMappingTest extends IntegrationTest
     public function test_object_with_no_argument_build_with_non_array_source_throws_exception(): void
     {
         try {
-            (new MapperBuilder())->mapper()->map(stdClass::class, 'foo');
+            $this->mapperBuilder()->mapper()->map(stdClass::class, 'foo');
         } catch (MappingError $exception) {
             $error = $exception->node()->messages()[0];
 

@@ -9,6 +9,7 @@ use CuyZ\Valinor\Type\Type;
 use CuyZ\Valinor\Type\Types\ArrayKeyType;
 use CuyZ\Valinor\Type\Types\ArrayType;
 use CuyZ\Valinor\Type\Types\BooleanValueType;
+use CuyZ\Valinor\Type\Types\CallableType;
 use CuyZ\Valinor\Type\Types\ClassStringType;
 use CuyZ\Valinor\Type\Types\NativeClassType;
 use CuyZ\Valinor\Type\Types\FloatValueType;
@@ -28,6 +29,8 @@ use CuyZ\Valinor\Type\Types\NegativeIntegerType;
 use CuyZ\Valinor\Type\Types\NonEmptyArrayType;
 use CuyZ\Valinor\Type\Types\NonEmptyListType;
 use CuyZ\Valinor\Type\Types\NonEmptyStringType;
+use CuyZ\Valinor\Type\Types\NonNegativeIntegerType;
+use CuyZ\Valinor\Type\Types\NonPositiveIntegerType;
 use CuyZ\Valinor\Type\Types\NullType;
 use CuyZ\Valinor\Type\Types\NumericStringType;
 use CuyZ\Valinor\Type\Types\PositiveIntegerType;
@@ -60,10 +63,13 @@ final class TypeCompiler
             case $type instanceof NativeIntegerType:
             case $type instanceof PositiveIntegerType:
             case $type instanceof NegativeIntegerType:
+            case $type instanceof NonPositiveIntegerType:
+            case $type instanceof NonNegativeIntegerType:
             case $type instanceof NativeStringType:
             case $type instanceof NonEmptyStringType:
             case $type instanceof NumericStringType:
             case $type instanceof UndefinedObjectType:
+            case $type instanceof CallableType:
             case $type instanceof MixedType:
                 return "$class::get()";
             case $type instanceof BooleanValueType:
@@ -73,6 +79,9 @@ final class TypeCompiler
             case $type instanceof IntegerRangeType:
                 return "new $class({$type->min()}, {$type->max()})";
             case $type instanceof StringValueType:
+                $value = var_export($type->toString(), true);
+
+                return "$class::from($value)";
             case $type instanceof IntegerValueType:
             case $type instanceof FloatValueType:
                 $value = var_export($type->value(), true);
@@ -93,16 +102,22 @@ final class TypeCompiler
                     default => "$class::default()",
                 };
             case $type instanceof ShapedArrayType:
-                $shapes = array_map(
+                $elements = implode(', ', array_map(
                     fn (ShapedArrayElement $element) => $this->compileArrayShapeElement($element),
                     $type->elements()
-                );
-                $shapes = implode(', ', $shapes);
+                ));
 
-                return "new $class("
-                    .($type->extra_key ? $this->compile($type->extra_key) : 'null').', '
-                    .($type->extra_type ? $this->compile($type->extra_type) : 'null').', '
-                    ."...[$shapes])";
+                if ($type->hasUnsealedType()) {
+                    $unsealedType = $this->compile($type->unsealedType());
+
+                    return "$class::unsealed($unsealedType, $elements)";
+                } elseif ($type->isUnsealed()) {
+                    return "$class::unsealedWithoutType($elements)";
+                }
+
+                return "new $class($elements)";
+
+
             case $type instanceof ShapedListType:
                 $shapes = array_map(
                     fn (ShapedArrayElement $element) => $this->compileArrayShapeElement($element),
@@ -113,6 +128,7 @@ final class TypeCompiler
                 return "new $class("
                     .($type->extra ? $this->compile($type->extra) : 'null').', '
                     ."...[$shapes])";
+                    
             case $type instanceof ArrayType:
             case $type instanceof NonEmptyArrayType:
                 if ($type->toString() === 'array' || $type->toString() === 'non-empty-array') {
@@ -147,15 +163,7 @@ final class TypeCompiler
 
                 $generics = implode(', ', $generics);
 
-                if ($type instanceof InterfaceType) {
-                    return "new $class('{$type->className()}', [$generics])";
-                }
-
-                $parent = $type->hasParent()
-                    ? $this->compile($type->parent())
-                    : 'null';
-
-                return "new $class('{$type->className()}', [$generics], $parent)";
+                return "new $class('{$type->className()}', [$generics])";
             case $type instanceof ClassStringType:
                 if (null === $type->subType()) {
                     return "new $class()";

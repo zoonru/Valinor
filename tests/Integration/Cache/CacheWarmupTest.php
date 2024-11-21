@@ -8,10 +8,10 @@ use CuyZ\Valinor\Cache\Exception\InvalidSignatureToWarmup;
 use CuyZ\Valinor\MapperBuilder;
 use CuyZ\Valinor\Tests\Fake\Cache\FakeCache;
 use CuyZ\Valinor\Tests\Fake\Cache\FakeCacheWithWarmup;
-use CuyZ\Valinor\Tests\Integration\IntegrationTest;
+use CuyZ\Valinor\Tests\Integration\IntegrationTestCase;
 use DateTimeInterface;
 
-final class CacheWarmupTest extends IntegrationTest
+final class CacheWarmupTest extends IntegrationTestCase
 {
     private FakeCache $cache;
 
@@ -22,13 +22,13 @@ final class CacheWarmupTest extends IntegrationTest
         parent::setUp();
 
         $this->cache = new FakeCache();
-        $this->mapper = (new MapperBuilder())->withCache($this->cache);
+        $this->mapper = $this->mapperBuilder()->withCache($this->cache);
     }
 
     public function test_cache_warmup_is_called_only_once(): void
     {
         $cache = new FakeCacheWithWarmup();
-        $mapper = (new MapperBuilder())->withCache($cache);
+        $mapper = $this->mapperBuilder()->withCache($cache);
 
         $mapper->warmup();
         $mapper->warmup();
@@ -41,7 +41,7 @@ final class CacheWarmupTest extends IntegrationTest
      */
     public function test_cache_warmup_does_not_call_delegate_warmup_if_not_handled(): void
     {
-        $mapper = new MapperBuilder(); // no cache registered
+        $mapper = $this->mapperBuilder(); // no cache registered
         $mapper->warmup();
     }
 
@@ -56,17 +56,16 @@ final class CacheWarmupTest extends IntegrationTest
 
     public function test_will_warmup_type_parser_cache_for_object_with_constructor(): void
     {
-        // PHP8.1 first-class callable syntax
         $mapper = $this->mapper->registerConstructor(
-            [ObjectToWarmupWithConstructors::class, 'constructorA'],
-            [ObjectToWarmupWithConstructors::class, 'constructorB'],
+            ObjectToWarmupWithConstructors::constructorA(...),
+            ObjectToWarmupWithConstructors::constructorB(...),
         );
 
         $mapper->warmup(ObjectToWarmupWithConstructors::class);
         $mapper->warmup(ObjectToWarmupWithConstructors::class, SomeObjectC::class);
 
-        self::assertSame(7, $this->cache->countEntries());
-        self::assertSame(7, $this->cache->timeSetWasCalled());
+        self::assertSame(6, $this->cache->countEntries());
+        self::assertSame(6, $this->cache->timeSetWasCalled());
     }
 
     public function test_will_warmup_type_parser_cache_for_interface(): void

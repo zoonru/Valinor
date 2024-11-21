@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace CuyZ\Valinor\Tests\Integration\Mapping\Object;
 
 use CuyZ\Valinor\Mapper\MappingError;
-use CuyZ\Valinor\MapperBuilder;
-use CuyZ\Valinor\Tests\Integration\IntegrationTest;
+use CuyZ\Valinor\Tests\Integration\IntegrationTestCase;
 use CuyZ\Valinor\Tests\Integration\Mapping\Fixture\SimpleObject;
 use CuyZ\Valinor\Tests\Integration\Mapping\Fixture\SimpleObject as SimpleObjectAlias;
 
-final class ArrayValuesMappingTest extends IntegrationTest
+final class ArrayValuesMappingTest extends IntegrationTestCase
 {
     public function test_values_are_mapped_properly(): void
     {
@@ -41,7 +40,7 @@ final class ArrayValuesMappingTest extends IntegrationTest
 
         foreach ([ArrayValues::class, ArrayValuesWithConstructor::class] as $class) {
             try {
-                $result = (new MapperBuilder())->mapper()->map($class, $source);
+                $result = $this->mapperBuilder()->mapper()->map($class, $source);
             } catch (MappingError $error) {
                 $this->mappingFail($error);
             }
@@ -67,32 +66,10 @@ final class ArrayValuesMappingTest extends IntegrationTest
         }
     }
 
-    public function test_key_is_class_name(): void
-    {
-        try {
-            $result = (new MapperBuilder())->mapper()->map('array{ArrayObject: "ArrayObject"}', ['ArrayObject' => 'ArrayObject']);
-        } catch (MappingError $error) {
-            $this->mappingFail($error);
-        }
-
-        self::assertSame(['ArrayObject' => 'ArrayObject'], $result); // @phpstan-ignore-line
-    }
-
-    public function test_literal_keys(): void
-    {
-        try {
-            $result = (new MapperBuilder())->mapper()->map('array<"a"|"b", true>', ['a' => true]);
-        } catch (MappingError $error) {
-            $this->mappingFail($error);
-        }
-
-        self::assertSame(['a' => true], $result);
-    }
-
     public function test_empty_array_in_non_empty_array_throws_exception(): void
     {
         try {
-            (new MapperBuilder())->mapper()->map(ArrayValues::class, [
+            $this->mapperBuilder()->mapper()->map(ArrayValues::class, [
                 'nonEmptyArraysOfStrings' => [],
             ]);
         } catch (MappingError $exception) {
@@ -106,7 +83,7 @@ final class ArrayValuesMappingTest extends IntegrationTest
     public function test_value_with_invalid_type_throws_exception(): void
     {
         try {
-            (new MapperBuilder())->mapper()->map(ArrayValues::class, [
+            $this->mapperBuilder()->mapper()->map(ArrayValues::class, [
                 'integers' => ['foo'],
             ]);
         } catch (MappingError $exception) {

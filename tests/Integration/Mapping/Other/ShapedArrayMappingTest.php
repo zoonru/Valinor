@@ -5,10 +5,9 @@ declare(strict_types=1);
 namespace CuyZ\Valinor\Tests\Integration\Mapping\Other;
 
 use CuyZ\Valinor\Mapper\MappingError;
-use CuyZ\Valinor\MapperBuilder;
-use CuyZ\Valinor\Tests\Integration\IntegrationTest;
+use CuyZ\Valinor\Tests\Integration\IntegrationTestCase;
 
-final class ShapedArrayMappingTest extends IntegrationTest
+final class ShapedArrayMappingTest extends IntegrationTestCase
 {
     public function test_values_are_mapped_properly(): void
     {
@@ -19,7 +18,7 @@ final class ShapedArrayMappingTest extends IntegrationTest
         ];
 
         try {
-            $result = (new MapperBuilder())->mapper()->map('array{foo: string, bar: int, fiz: float}', $source);
+            $result = $this->mapperBuilder()->mapper()->map('array{foo: string, bar: int, fiz: float}', $source);
         } catch (MappingError $error) {
             $this->mappingFail($error);
         }
@@ -38,7 +37,7 @@ final class ShapedArrayMappingTest extends IntegrationTest
         })();
 
         try {
-            $result = (new MapperBuilder())->mapper()->map('array{foo: string, bar: int, fiz: float}', $iterator);
+            $result = $this->mapperBuilder()->mapper()->map('array{foo: string, bar: int, fiz: float}', $iterator);
         } catch (MappingError $error) {
             $this->mappingFail($error);
         }
@@ -51,7 +50,7 @@ final class ShapedArrayMappingTest extends IntegrationTest
     public function test_missing_element_throws_exception(): void
     {
         try {
-            (new MapperBuilder())->mapper()->map('array{foo: string, bar: int}', ['foo' => 'foo']);
+            $this->mapperBuilder()->mapper()->map('array{foo: string, bar: int}', ['foo' => 'foo']);
         } catch (MappingError $exception) {
             $error = $exception->node()->children()['bar']->messages()[0];
 
@@ -69,7 +68,7 @@ final class ShapedArrayMappingTest extends IntegrationTest
         ];
 
         try {
-            (new MapperBuilder())->mapper()->map('array{foo: string, bar: int}', $source);
+            $this->mapperBuilder()->mapper()->map('array{foo: string, bar: int}', $source);
         } catch (MappingError $exception) {
             $rootError = $exception->node()->messages()[0];
             $nestedError = $exception->node()->children()['foo']->messages()[0];

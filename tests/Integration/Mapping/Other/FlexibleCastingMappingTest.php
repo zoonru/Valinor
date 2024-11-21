@@ -6,14 +6,13 @@ namespace CuyZ\Valinor\Tests\Integration\Mapping\Other;
 
 use CuyZ\Valinor\Mapper\MappingError;
 use CuyZ\Valinor\Mapper\TreeMapper;
-use CuyZ\Valinor\MapperBuilder;
 use CuyZ\Valinor\Tests\Fixture\Enum\BackedIntegerEnum;
 use CuyZ\Valinor\Tests\Fixture\Enum\BackedStringEnum;
 use CuyZ\Valinor\Tests\Fixture\Object\StringableObject;
-use CuyZ\Valinor\Tests\Integration\IntegrationTest;
+use CuyZ\Valinor\Tests\Integration\IntegrationTestCase;
 use stdClass;
 
-final class FlexibleCastingMappingTest extends IntegrationTest
+final class FlexibleCastingMappingTest extends IntegrationTestCase
 {
     private TreeMapper $mapper;
 
@@ -21,7 +20,72 @@ final class FlexibleCastingMappingTest extends IntegrationTest
     {
         parent::setUp();
 
-        $this->mapper = (new MapperBuilder())->enableFlexibleCasting()->mapper();
+        $this->mapper = $this->mapperBuilder()->enableFlexibleCasting()->mapper();
+    }
+
+    public function test_leading_zero_in_numeric_is_mapped_properly(): void
+    {
+        $source = ['000', '040', '00040', '0001337.404'];
+
+        try {
+            $result = $this->mapper->map('array<int|float>', $source);
+        } catch (MappingError $error) {
+            $this->mappingFail($error);
+        }
+
+        self::assertSame([0, 40, 40, 1337.404], $result);
+    }
+
+    public function test_leading_zero_in_integer_range_is_mapped_properly(): void
+    {
+        $source = ['060', '042', '000404'];
+
+        try {
+            $result = $this->mapper->map('array<int<1, 500>>', $source);
+        } catch (MappingError $error) {
+            $this->mappingFail($error);
+        }
+
+        self::assertSame([60, 42, 404], $result);
+    }
+
+    public function test_leading_zero_in_integer_value_is_mapped_properly(): void
+    {
+        $source = ['000', '040', '000404'];
+
+        try {
+            $result = $this->mapper->map('array<0|40|404>', $source);
+        } catch (MappingError $error) {
+            $this->mappingFail($error);
+        }
+
+        self::assertSame([0, 40, 404], $result);
+    }
+
+    public function test_leading_zero_in_positive_integer_is_mapped_properly(): void
+    {
+        $source = ['040', '000404'];
+
+        try {
+            $result = $this->mapper->map('array<positive-int>', $source);
+        } catch (MappingError $error) {
+            $this->mappingFail($error);
+        }
+
+        self::assertSame([40, 404], $result);
+    }
+
+    public function test_leading_zero_in_non_negative_integer_is_mapped_properly(): void
+    {
+        $source = ['000', '040', '000404'];
+
+        try {
+            $result = $this->mapper->map('array<non-negative-int>', $source);
+        } catch (MappingError $error) {
+            $this->mappingFail($error);
+        }
+
+        self::assertSame([0, 40, 404], $result);
     }
 
     public function test_array_of_scalars_is_mapped_properly(): void
@@ -54,9 +118,6 @@ final class FlexibleCastingMappingTest extends IntegrationTest
         self::assertSame(['foo', 'foo' => 42], $result);
     }
 
-    /**
-     * @requires PHP >= 8.1
-     */
     public function test_string_enum_is_cast_correctly(): void
     {
         try {
@@ -68,9 +129,6 @@ final class FlexibleCastingMappingTest extends IntegrationTest
         self::assertSame(BackedStringEnum::FOO, $result);
     }
 
-    /**
-     * @requires PHP >= 8.1
-     */
     public function test_integer_enum_is_cast_correctly(): void
     {
         try {
@@ -113,7 +171,7 @@ final class FlexibleCastingMappingTest extends IntegrationTest
     public function test_null_value_for_interface_with_no_properties_needed_fills_it_with_empty_array(): void
     {
         try {
-            $result = (new MapperBuilder())
+            $result = $this->mapperBuilder()
                 ->infer(SomeInterfaceForClassWithNoProperties::class, fn () => SomeClassWithNoProperties::class)
                 ->enableFlexibleCasting()
                 ->mapper()
@@ -128,7 +186,7 @@ final class FlexibleCastingMappingTest extends IntegrationTest
     public function test_interface_is_inferred_and_mapped_properly_in_flexible_casting_mode(): void
     {
         try {
-            $result = (new MapperBuilder())
+            $result = $this->mapperBuilder()
                 ->infer(SomeInterfaceForClassWithProperties::class, fn () => SomeClassWithProperties::class)
                 ->enableFlexibleCasting()
                 ->mapper()
@@ -262,6 +320,17 @@ final class FlexibleCastingMappingTest extends IntegrationTest
     {
         try {
             $result = $this->mapper->map('string[]|string', new StringableObject('foo'));
+        } catch (MappingError $error) {
+            $this->mappingFail($error);
+        }
+
+        self::assertSame('foo', $result);
+    }
+
+    public function test_source_can_be_casted_to_array_key(): void
+    {
+        try {
+            $result = $this->mapper->map('array-key', new StringableObject('foo'));
         } catch (MappingError $error) {
             $this->mappingFail($error);
         }

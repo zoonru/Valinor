@@ -5,20 +5,20 @@ declare(strict_types=1);
 namespace CuyZ\Valinor\Mapper\Tree\Builder;
 
 use CuyZ\Valinor\Mapper\Tree\Exception\SourceMustBeIterable;
-use CuyZ\Valinor\Mapper\Tree\Exception\UnexpectedShapedArrayKeys;
 use CuyZ\Valinor\Mapper\Tree\Shell;
 use CuyZ\Valinor\Type\Types\ShapedArrayType;
 
 use function array_key_exists;
 use function assert;
-use function count;
 use function is_array;
 
 /** @internal */
 final class ShapedArrayNodeBuilder implements NodeBuilder
 {
-    public function __construct(private bool $allowSuperfluousKeys) {}
-
+    public function __construct()
+    {
+        
+    }
     public function build(Shell $shell, RootNodeBuilder $rootBuilder): TreeNode
     {
         $type = $shell->type();
@@ -35,13 +35,7 @@ final class ShapedArrayNodeBuilder implements NodeBuilder
         $array = $this->buildArray($children);
 
         $node = TreeNode::branch($shell, $array, $children);
-
-        if (! $this->allowSuperfluousKeys
-            && $type->extra_key === null
-            && count($value) > count($children)
-        ) {
-            $node = $node->withMessage(new UnexpectedShapedArrayKeys($value, $children));
-        }
+        $node = $node->checkUnexpectedKeys();
 
         return $node;
     }
@@ -72,14 +66,12 @@ final class ShapedArrayNodeBuilder implements NodeBuilder
             unset($value[$key]);
         }
 
-        if ($type->extra_key !== null) {
-            assert($type->extra_type !== null);
-            foreach ($value as $k => $v) {
-                if (!array_key_exists($k, $children)) {
-                    $children[$k] = $rootBuilder->build(
-                        $shell->child((string)$k, $type->extra_type)->withValue($v)
-                    );
-                }
+        if ($type->isUnsealed()) {
+            $unsealedShell = $shell->withType($type->unsealedType())->withValue($value);
+            $unsealedChildren = $rootBuilder->build($unsealedShell)->children();
+
+            foreach ($unsealedChildren as $unsealedChild) {
+                $children[$unsealedChild->name()] = $unsealedChild;
             }
         }
 

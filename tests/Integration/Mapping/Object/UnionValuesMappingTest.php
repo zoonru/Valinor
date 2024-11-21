@@ -5,13 +5,12 @@ declare(strict_types=1);
 namespace CuyZ\Valinor\Tests\Integration\Mapping\Object;
 
 use CuyZ\Valinor\Mapper\MappingError;
-use CuyZ\Valinor\MapperBuilder;
 use CuyZ\Valinor\Tests\Fixture\Object\ObjectWithConstants;
-use CuyZ\Valinor\Tests\Integration\IntegrationTest;
+use CuyZ\Valinor\Tests\Integration\IntegrationTestCase;
 use DateTimeImmutable;
 use DateTimeInterface;
 
-final class UnionValuesMappingTest extends IntegrationTest
+final class UnionValuesMappingTest extends IntegrationTestCase
 {
     public function test_values_are_mapped_properly(): void
     {
@@ -39,7 +38,7 @@ final class UnionValuesMappingTest extends IntegrationTest
 
         foreach ($classes as $class) {
             try {
-                $result = (new MapperBuilder())->mapper()->map($class, $source);
+                $result = $this->mapperBuilder()->mapper()->map($class, $source);
             } catch (MappingError $error) {
                 $this->mappingFail($error);
             }
@@ -71,7 +70,7 @@ final class UnionValuesMappingTest extends IntegrationTest
 
         foreach ([UnionOfFixedValues::class, UnionOfFixedValuesWithConstructor::class] as $class) {
             try {
-                $result = (new MapperBuilder())->mapper()->map($class, $source);
+                $result = $this->mapperBuilder()->mapper()->map($class, $source);
             } catch (MappingError $error) {
                 $this->mappingFail($error);
             }
@@ -88,7 +87,7 @@ final class UnionValuesMappingTest extends IntegrationTest
     public function test_invalid_value_is_not_casted_when_casting_mode_is_disabled(): void
     {
         try {
-            (new MapperBuilder())->mapper()->map('string|int', 42.404);
+            $this->mapperBuilder()->mapper()->map('string|int', 42.404);
         } catch (MappingError $exception) {
             $error = $exception->node()->messages()[0];
 

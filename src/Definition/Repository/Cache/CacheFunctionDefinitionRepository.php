@@ -21,7 +21,9 @@ final class CacheFunctionDefinitionRepository implements FunctionDefinitionRepos
     public function for(callable $function): FunctionDefinition
     {
         $reflection = Reflection::function($function);
-        $key = "function-definition-{$reflection->getFileName()}-{$reflection->getStartLine()}-{$reflection->getEndLine()}";
+
+        // @infection-ignore-all
+        $key = "function-definition-\0" . $reflection->getFileName() . ':' . $reflection->getStartLine() . '-' . $reflection->getEndLine();
 
         $entry = $this->cache->get($key);
 

@@ -9,6 +9,8 @@ use CuyZ\Valinor\Library\Settings;
 use CuyZ\Valinor\Mapper\ArgumentsMapper;
 use CuyZ\Valinor\Mapper\Tree\Message\ErrorMessage;
 use CuyZ\Valinor\Mapper\TreeMapper;
+use CuyZ\Valinor\Normalizer\Format;
+use CuyZ\Valinor\Normalizer\Normalizer;
 use Psr\SimpleCache\CacheInterface;
 use Throwable;
 
@@ -34,9 +36,6 @@ final class MapperBuilder
      * using the given source. These arguments can then be used to decide which
      * implementation should be used.
      *
-     * The callback *must* be pure, its output must be deterministic.
-     * @see https://en.wikipedia.org/wiki/Pure_function
-     *
      * Example:
      *
      * ```php
@@ -55,7 +54,6 @@ final class MapperBuilder
      * ```
      *
      * @param interface-string|class-string $name
-     * @psalm-param pure-callable $callback
      */
     public function infer(string $name, callable $callback): self
     {
@@ -83,9 +81,6 @@ final class MapperBuilder
      * `__construct` method — of the targeted class. If for some reason it still
      * needs to be handled as well, the name of the class must be given to this
      * method.
-     *
-     * A constructor *must* be pure, its output must be deterministic.
-     * @see https://en.wikipedia.org/wiki/Pure_function
      *
      * ```php
      * final class SomeClass
@@ -174,8 +169,8 @@ final class MapperBuilder
      *     case CASE_D = 'BAR_VALUE_2';
      *
      *     /**
-     *      * @param 'FOO'|'BAR' $type
-     *      * @param int<1, 2> $number
+     *      * \@param 'FOO'|'BAR' $type
+     *      * \@param int<1, 2> $number
      *      * /
      *     public static function fromMatrix(string $type, int $number): self
      *     {
@@ -198,7 +193,6 @@ final class MapperBuilder
      *     ]);
      * ```
      *
-     * @psalm-param pure-callable|class-string ...$constructors
      * @param callable|class-string ...$constructors
      */
     public function registerConstructor(callable|string ...$constructors): self
@@ -296,7 +290,6 @@ final class MapperBuilder
 
     /**
      * @template T
-     * @psalm-param pure-callable(T): T $callback
      * @param callable(T): T $callback
      */
     public function alter(callable $callback): self
@@ -416,9 +409,6 @@ final class MapperBuilder
      * part of a query should never be allowed. Therefore, only an exhaustive
      * list of carefully chosen exceptions should be filtered.
      *
-     * The filter callback *must* be pure, its output must be deterministic.
-     * @see https://en.wikipedia.org/wiki/Pure_function
-     *
      * ```php
      * final class SomeClass
      * {
@@ -444,13 +434,84 @@ final class MapperBuilder
      *     ]);
      * ```
      *
-     * @psalm-param pure-callable(Throwable): ErrorMessage $filter
      * @param callable(Throwable): ErrorMessage $filter
      */
     public function filterExceptions(callable $filter): self
     {
         $clone = clone $this;
         $clone->settings->exceptionFilter = $filter;
+
+        return $clone;
+    }
+
+    /**
+     * A transformer is responsible for transforming specific values during a
+     * normalization process.
+     *
+     * Transformers can be chained, the last registered one will take precedence
+     * over the previous ones.
+     *
+     * By specifying the type of its first parameter, the given callable will
+     * determine when the transformer is used. Advanced type annotations like
+     * `non-empty-string` can be used to target a more specific type.
+     *
+     * A second `callable` parameter may be declared, allowing to call the next
+     * transformer in the chain and get the modified value from it, before
+     * applying its own transformations.
+     *
+     * A priority can be given to a transformer, to make sure it is called
+     * before or after another one. The higher the priority, the sooner the
+     * transformer will be called. Default priority is 0.
+     *
+     * An attribute on a property or a class can act as a transformer if:
+     *  1. It defines a `normalize` or `normalizeKey` method.
+     *  2. It is registered using either the `registerTransformer()` method or
+     *     the following attribute: @see \CuyZ\Valinor\Normalizer\AsTransformer
+     *
+     * Example:
+     *
+     * ```php
+     * (new \CuyZ\Valinor\MapperBuilder())
+     *
+     *     // The type of the first parameter of the transformer will determine
+     *     // when it will be used by the normalizer.
+     *     ->registerTransformer(
+     *         fn (string $value, callable $next) => strtoupper($next())
+     *     )
+     *
+     *     // Transformers can be chained, the last registered one will take
+     *     // precedence over the previous ones, which can be called using the
+     *     // `$next` parameter.
+     *     ->registerTransformer(
+     *         fn (string $value, callable $next) => $next() . '!'
+     *     )
+     *
+     *     // A priority can be given to a transformer, to make sure it is
+     *     // called before or after another one.
+     *     ->registerTransformer(
+     *         fn (string $value, callable $next) => $next() . '?',
+     *         priority: -100 // Negative priority: transformer is called early
+     *     )
+     *
+     *     // External transformer attributes must be registered before they are
+     *     // used by the normalizer.
+     *     ->registerTransformer(\Some\External\TransformerAttribute::class)
+     *
+     *     ->normalizer()
+     *     ->normalize('Hello world'); // HELLO WORLD?!
+     * ```
+     *
+     * @param callable|class-string $transformer
+     */
+    public function registerTransformer(callable|string $transformer, int $priority = 0): self
+    {
+        $clone = clone $this;
+
+        if (is_callable($transformer)) {
+            $clone->settings->transformers[$priority][] = $transformer;
+        } else {
+            $clone->settings->transformerAttributes[$transformer] = null;
+        }
 
         return $clone;
     }
@@ -474,6 +535,17 @@ final class MapperBuilder
     public function argumentsMapper(): ArgumentsMapper
     {
         return $this->container()->argumentsMapper();
+    }
+
+    /**
+     * @template T of Normalizer
+     *
+     * @param Format<T> $format
+     * @return T
+     */
+    public function normalizer(Format $format): Normalizer
+    {
+        return $this->container()->normalizer($format);
     }
 
     public function __clone()

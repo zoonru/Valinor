@@ -5,10 +5,22 @@ hide:
 
 # Changelog
 
-Below are listed the changelogs for all released version of the library.
+Below are listed the changelogs for all released versions of the library.
 
 ## Version 1
 
+- [`1.14.1` — 6th of November 2024](changelog/version-1.14.1.md)
+- [`1.14.0` — 4th of November 2024](changelog/version-1.14.0.md)
+- [`1.13.0` — 2nd of September 2024](changelog/version-1.13.0.md)
+- [`1.12.0` — 4th of April 2024](changelog/version-1.12.0.md)
+- [`1.11.0` — 27th of March 2024](changelog/version-1.11.0.md)
+- [`1.10.0` — 12th of March 2024](changelog/version-1.10.0.md)
+- [`1.9.0` — 2nd of February 2024](changelog/version-1.9.0.md)
+- [`1.8.2` — 8th of January 2024](changelog/version-1.8.2.md)
+- [`1.8.1` — 8th of January 2024](changelog/version-1.8.1.md)
+- [`1.8.0` — 26th of December 2023](changelog/version-1.8.0.md)
+- [`1.7.0` — 23rd of October 2023](changelog/version-1.7.0.md)
+- [`1.6.1` — 11th of October 2023](changelog/version-1.6.1.md)
 - [`1.6.0` — 25th of August 2023](changelog/version-1.6.0.md)
 - [`1.5.0` — 7th of August 2023](changelog/version-1.5.0.md)
 - [`1.4.0` — 17th of April 2023](changelog/version-1.4.0.md)

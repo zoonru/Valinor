@@ -22,6 +22,12 @@ final class SomeClass
         /** @var negative-int */
         private int $negativeInteger,
 
+        /** @var non-positive-int */
+        private int $nonPositiveInteger,
+
+        /** @var non-negative-int */
+        private int $nonNegativeInteger,
+
         /** @var int<-42, 1337> */
         private int $integerRange,
 
@@ -44,6 +50,9 @@ final class SomeClass
 
         /** @var class-string<SomeInterface> */
         private string $classStringOfAnInterface,
+        
+        /** @var value-of<SomeEnum> */
+        private string $valueOfEnum,
     ) {}
 }
 ```
@@ -128,6 +137,15 @@ final class SomeClass
 
         /** @var array{string, bar: int} */
         private array $shapedArrayWithUndefinedKey,
+
+        /** @var array{foo: string, ...} */
+        private array $unsealedShapedArray,
+        
+        /** @var array{foo: string, ...array<string>} */
+        private array $unsealedShapedArrayWithExplicitType,
+        
+        /** @var array{foo: string, ...array<int, string>} */
+        private array $unsealedShapedArrayWithExplicitKeyAndType,
     ) {}
 }
 ```
@@ -147,10 +165,10 @@ final class SomeClass
         private array $unionInsideArray,
         
         /** @var int|true */
-        private int|bool $unionWithLiteralTrueType;
+        private int|bool $unionWithLiteralTrueType,
         
         /** @var int|false */
-        private int|bool $unionWithLiteralFalseType;
+        private int|bool $unionWithLiteralFalseType,
         
         /** @var 404.42|1337.42 */
         private float $unionOfFloatValues,

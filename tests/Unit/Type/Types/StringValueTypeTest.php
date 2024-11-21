@@ -10,6 +10,7 @@ use CuyZ\Valinor\Tests\Fixture\Object\StringableObject;
 use CuyZ\Valinor\Type\Types\MixedType;
 use CuyZ\Valinor\Type\Types\StringValueType;
 use CuyZ\Valinor\Type\Types\UnionType;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 
@@ -32,8 +33,8 @@ final class StringValueTypeTest extends TestCase
     public function test_accepts_correct_values(): void
     {
         $type = new StringValueType('Schwifty!');
-        $typeSingleQuote = StringValueType::singleQuote('Schwifty!');
-        $typeDoubleQuote = StringValueType::doubleQuote('Schwifty!');
+        $typeSingleQuote = StringValueType::from("'Schwifty!'");
+        $typeDoubleQuote = StringValueType::from('"Schwifty!"');
 
         self::assertTrue($type->accepts('Schwifty!'));
         self::assertTrue($typeSingleQuote->accepts('Schwifty!'));
@@ -67,15 +68,13 @@ final class StringValueTypeTest extends TestCase
         self::assertFalse($this->type->canCast(new stdClass()));
     }
 
-    /**
-     * @dataProvider cast_value_returns_correct_result_data_provider
-     */
+    #[DataProvider('cast_value_returns_correct_result_data_provider')]
     public function test_cast_value_returns_correct_result(StringValueType $type, mixed $value, string $expected): void
     {
         self::assertSame($expected, $type->cast($value));
     }
 
-    public function cast_value_returns_correct_result_data_provider(): array
+    public static function cast_value_returns_correct_result_data_provider(): array
     {
         return [
             'String from float' => [
@@ -113,8 +112,8 @@ final class StringValueTypeTest extends TestCase
     public function test_string_value_is_correct(): void
     {
         $type = new StringValueType('Schwifty!');
-        $typeSingleQuote = StringValueType::singleQuote('Schwifty!');
-        $typeDoubleQuote = StringValueType::doubleQuote('Schwifty!');
+        $typeSingleQuote = StringValueType::from("'Schwifty!'");
+        $typeDoubleQuote = StringValueType::from('"Schwifty!"');
 
         self::assertSame('Schwifty!', $type->toString());
         self::assertSame("'Schwifty!'", $typeSingleQuote->toString());
@@ -125,8 +124,8 @@ final class StringValueTypeTest extends TestCase
     {
         $typeA = new StringValueType('Schwifty!');
         $typeB = new StringValueType('Schwifty!');
-        $typeC = StringValueType::singleQuote('Schwifty!');
-        $typeD = StringValueType::doubleQuote('Schwifty!');
+        $typeC = StringValueType::from("'Schwifty!'");
+        $typeD = StringValueType::from('"Schwifty!"');
 
         self::assertTrue($typeA->matches($typeB));
         self::assertTrue($typeA->matches($typeC));

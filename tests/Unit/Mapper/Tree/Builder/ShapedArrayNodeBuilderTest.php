@@ -21,17 +21,17 @@ final class ShapedArrayNodeBuilderTest extends TestCase
     {
         $this->expectException(AssertionError::class);
 
-        (new RootNodeBuilder(new ShapedArrayNodeBuilder(true)))->build(FakeShell::any());
+        (new RootNodeBuilder(new ShapedArrayNodeBuilder()))->build(FakeShell::any());
     }
 
     public function test_build_with_null_source_throws_exception(): void
     {
-        $type = new ShapedArrayType(null, null, new ShapedArrayElement(new StringValueType('foo'), new FakeType('SomeType')));
+        $type = new ShapedArrayType(new ShapedArrayElement(new StringValueType('foo'), new FakeType('SomeType')));
 
         $this->expectException(SourceMustBeIterable::class);
         $this->expectExceptionCode(1618739163);
         $this->expectExceptionMessage("Cannot be empty and must be filled with a value matching type `array{foo: SomeType}`.");
 
-        (new RootNodeBuilder(new ShapedArrayNodeBuilder(true)))->build(FakeShell::new($type));
+        (new RootNodeBuilder(new ShapedArrayNodeBuilder()))->build(FakeShell::new($type));
     }
 }

@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace CuyZ\Valinor\Tests\Integration\Mapping\Object;
 
 use CuyZ\Valinor\Mapper\MappingError;
-use CuyZ\Valinor\MapperBuilder;
-use CuyZ\Valinor\Tests\Integration\IntegrationTest;
+use CuyZ\Valinor\Tests\Integration\IntegrationTestCase;
 use CuyZ\Valinor\Tests\Integration\Mapping\Fixture\SimpleObject;
 use stdClass;
 
-final class ShapedArrayValuesMappingTest extends IntegrationTest
+final class ShapedArrayValuesMappingTest extends IntegrationTestCase
 {
     public function test_values_are_mapped_properly(): void
     {
@@ -56,23 +55,30 @@ final class ShapedArrayValuesMappingTest extends IntegrationTest
             'shapedArrayWithLowercaseClassNameAsKey' => [
                 'stdclass' => 'foo',
             ],
-            'basicUnsealedShapedArrayWithStringKeys' => [
-                'foo' => 'test',
-                'bar' => 42,
-                'baz' => 'extra'
-            ],
             'shapedArrayWithEnumNameAsKey' => [
                 'EnumAtRootNamespace' => 'foo',
             ],
             'shapedArrayWithLowercaseEnumNameAsKey' => [
                 'enumatrootnamespace' => 'foo',
             ],
-            'porperty_from_name' => 0
+            'unsealedShapedArrayWithoutKeyWithStringType' => [
+                'foo' => 'foo',
+                'bar' => 'bar',
+                42 => 'baz',
+            ],
+            'unsealedShapedArrayWithIntegerKeyWithStringType' => [
+                'foo' => 'foo',
+                42 => 'bar',
+            ],
+            'unsealedShapedArrayWithStringKeyWithStringType' => [
+                'foo' => 'foo',
+                'bar' => 'bar',
+            ],
         ];
 
         foreach ([ShapedArrayValues::class, ShapedArrayValuesWithConstructor::class] as $class) {
             try {
-                $result = (new MapperBuilder())->mapper()->map($class, $source);
+                $result = $this->mapperBuilder()->mapper()->map($class, $source);
             } catch (MappingError $error) {
                 $this->mappingFail($error);
             }
@@ -88,18 +94,20 @@ final class ShapedArrayValuesMappingTest extends IntegrationTest
             self::assertSame('bar', $result->advancedShapedArray['mandatoryString']);
             self::assertSame(1337, $result->advancedShapedArray[0]);
             self::assertSame(42.404, $result->advancedShapedArray[1]);
-            self::assertSame($source['basicUnsealedShapedArrayWithStringKeys'], $result->basicUnsealedShapedArrayWithStringKeys);
             self::assertSame('foo', $result->shapedArrayWithClassNameAsKey['stdClass']);
             self::assertSame('foo', $result->shapedArrayWithLowercaseClassNameAsKey['stdclass']);
             self::assertSame('foo', $result->shapedArrayWithEnumNameAsKey['EnumAtRootNamespace']);
             self::assertSame('foo', $result->shapedArrayWithLowercaseEnumNameAsKey['enumatrootnamespace']);
+            self::assertSame($source['unsealedShapedArrayWithoutKeyWithStringType'], $result->unsealedShapedArrayWithoutKeyWithStringType);
+            self::assertSame($source['unsealedShapedArrayWithIntegerKeyWithStringType'], $result->unsealedShapedArrayWithIntegerKeyWithStringType);
+            self::assertSame($source['unsealedShapedArrayWithStringKeyWithStringType'], $result->unsealedShapedArrayWithStringKeyWithStringType);
         }
     }
 
     public function test_value_with_invalid_type_throws_exception(): void
     {
         try {
-            (new MapperBuilder())->mapper()->map(ShapedArrayValues::class, [
+            $this->mapperBuilder()->mapper()->map(ShapedArrayValues::class, [
                 'basicShapedArrayWithStringKeys' => [
                     'foo' => new stdClass(),
                     'bar' => 42,
@@ -110,19 +118,39 @@ final class ShapedArrayValuesMappingTest extends IntegrationTest
 
             self::assertSame('Value object(stdClass) is not a valid string.', (string)$error);
         }
+    }
 
+    public function test_unsealed_shaped_array_invalid_key_throws_exception(): void
+    {
         try {
-            (new MapperBuilder())->mapper()->map(ShapedArrayValues::class, [
-                'basicShapedArrayWithStringKeys' => [
-                    'foo' => 'test',
-                    'bar' => 42,
-                    'baz' => 'extra'
+            $this->mapperBuilder()->mapper()->map(
+                'array{foo: string, ...array<int, string>}',
+                [
+                    'foo' => new stdClass(),
+                    'bar' => 'bar',
                 ],
-            ]);
+            );
         } catch (MappingError $exception) {
-            $error = $exception->node()->children()['basicShapedArrayWithStringKeys']->messages()[0];
+            $error = $exception->node()->children()['bar']->messages()[0];
 
-            self::assertSame('Unexpected key(s) `baz`, expected `foo`, `bar`.', (string)$error);
+            self::assertSame("Key 'bar' does not match type `int`.", (string)$error);
+        }
+    }
+
+    public function test_unsealed_shaped_array_invalid_value_throws_exception(): void
+    {
+        try {
+            $this->mapperBuilder()->mapper()->map(
+                'array{foo: string, ...array<int>}',
+                [
+                    'foo' => new stdClass(),
+                    'bar' => 'bar',
+                ],
+            );
+        } catch (MappingError $exception) {
+            $error = $exception->node()->children()['bar']->messages()[0];
+
+            self::assertSame("Value 'bar' is not a valid integer.", (string)$error);
         }
     }
 }
@@ -151,7 +179,7 @@ class ShapedArrayValues
      * @var array{
      *     foo: string,
      *     bar: int
-     * } Some description
+     * }
      */
     public array $shapedArrayOnSeveralLines;
 
@@ -159,7 +187,7 @@ class ShapedArrayValues
      * @var array{
      *     foo: string,
      *     bar: int,
-     * } Some description
+     * }
      */
     public array $shapedArrayOnSeveralLinesWithTrailingComma;
 
@@ -168,9 +196,6 @@ class ShapedArrayValues
 
     /** @var array{stdClass: string} */
     public array $shapedArrayWithClassNameAsKey;
-
-    /** @var array{foo: string, bar: int, ...<string, string>} */
-    public array $basicUnsealedShapedArrayWithStringKeys; // @phpstan-ignore-line
 
     /** @var array{stdclass: string} */
     public array $shapedArrayWithLowercaseClassNameAsKey;
@@ -181,7 +206,14 @@ class ShapedArrayValues
     /** @var array{enumatrootnamespace: string} */
     public array $shapedArrayWithLowercaseEnumNameAsKey;
 
-    public int $property_from_name;
+    /** @var array{foo: string, ...array<string>} */
+    public array $unsealedShapedArrayWithoutKeyWithStringType; // @phpstan-ignore-line / PHPStan does not (yet) understand the unsealed shaped array syntax
+
+    /** @var array{foo: string, ...array<int, string>} */
+    public array $unsealedShapedArrayWithIntegerKeyWithStringType; // @phpstan-ignore-line / PHPStan does not (yet) understand the unsealed shaped array syntax
+
+    /** @var array{foo: string, ...array<string, string>} */
+    public array $unsealedShapedArrayWithStringKeyWithStringType; // @phpstan-ignore-line / PHPStan does not (yet) understand the unsealed shaped array syntax
 }
 
 class ShapedArrayValuesWithConstructor extends ShapedArrayValues
@@ -196,20 +228,21 @@ class ShapedArrayValuesWithConstructor extends ShapedArrayValues
      * @param array{
      *     foo: string,
      *     bar: int
-     * } $shapedArrayOnSeveralLines Some description
+     * } $shapedArrayOnSeveralLines
      * @param array{
      *     foo: string,
      *     bar: int,
-     * } $shapedArrayOnSeveralLinesWithTrailingComma Some description
+     * } $shapedArrayOnSeveralLinesWithTrailingComma
      * @param array{0: int, float, optionalString?: string, mandatoryString: string} $advancedShapedArray
      * @param array{stdClass: string} $shapedArrayWithClassNameAsKey
-     * @param array{foo: string, bar: int, ...<string, string>} $basicUnsealedShapedArrayWithStringKeys
      * @param array{stdclass: string} $shapedArrayWithLowercaseClassNameAsKey
      * @param array{EnumAtRootNamespace: string} $shapedArrayWithEnumNameAsKey
      * @param array{enumatrootnamespace: string} $shapedArrayWithLowercaseEnumNameAsKey
-     * @param int $property_from_name
-     * @phpstan-ignore-next-line
+     * @param array{foo: string, ...array<string>} $unsealedShapedArrayWithoutKeyWithStringType
+     * @param array{foo: string, ...array<int, string>} $unsealedShapedArrayWithIntegerKeyWithStringType
+     * @param array{foo: string, ...array<string, string>} $unsealedShapedArrayWithStringKeyWithStringType
      */
+    // @phpstan-ignore-next-line / PHPStan does not (yet) understand the unsealed shaped array syntax
     public function __construct(
         array $basicShapedArrayWithStringKeys,
         array $basicShapedArrayWithSingleQuotedStringKeys,
@@ -221,11 +254,12 @@ class ShapedArrayValuesWithConstructor extends ShapedArrayValues
         array $shapedArrayOnSeveralLinesWithTrailingComma,
         array $advancedShapedArray,
         array $shapedArrayWithClassNameAsKey,
-        array $basicUnsealedShapedArrayWithStringKeys,
         array $shapedArrayWithLowercaseClassNameAsKey,
         array $shapedArrayWithEnumNameAsKey,
         array $shapedArrayWithLowercaseEnumNameAsKey,
-        int $property_from_name
+        array $unsealedShapedArrayWithoutKeyWithStringType,
+        array $unsealedShapedArrayWithIntegerKeyWithStringType,
+        array $unsealedShapedArrayWithStringKeyWithStringType,
     ) {
         $this->basicShapedArrayWithStringKeys = $basicShapedArrayWithStringKeys;
         $this->basicShapedArrayWithSingleQuotedStringKeys = $basicShapedArrayWithSingleQuotedStringKeys;
@@ -237,10 +271,11 @@ class ShapedArrayValuesWithConstructor extends ShapedArrayValues
         $this->shapedArrayOnSeveralLinesWithTrailingComma = $shapedArrayOnSeveralLinesWithTrailingComma;
         $this->advancedShapedArray = $advancedShapedArray;
         $this->shapedArrayWithClassNameAsKey = $shapedArrayWithClassNameAsKey;
-        $this->basicUnsealedShapedArrayWithStringKeys = $basicUnsealedShapedArrayWithStringKeys;
         $this->shapedArrayWithLowercaseClassNameAsKey = $shapedArrayWithLowercaseClassNameAsKey;
         $this->shapedArrayWithEnumNameAsKey = $shapedArrayWithEnumNameAsKey;
         $this->shapedArrayWithLowercaseEnumNameAsKey = $shapedArrayWithLowercaseEnumNameAsKey;
-        $this->property_from_name = $property_from_name;
+        $this->unsealedShapedArrayWithoutKeyWithStringType = $unsealedShapedArrayWithoutKeyWithStringType;
+        $this->unsealedShapedArrayWithIntegerKeyWithStringType = $unsealedShapedArrayWithIntegerKeyWithStringType;
+        $this->unsealedShapedArrayWithStringKeyWithStringType = $unsealedShapedArrayWithStringKeyWithStringType;
     }
 }

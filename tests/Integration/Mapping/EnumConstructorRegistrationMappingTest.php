@@ -3,19 +3,15 @@
 namespace CuyZ\Valinor\Tests\Integration\Mapping;
 
 use CuyZ\Valinor\Mapper\MappingError;
-use CuyZ\Valinor\MapperBuilder;
 use CuyZ\Valinor\Tests\Fixture\Enum\BackedStringEnum;
-use CuyZ\Valinor\Tests\Integration\IntegrationTest;
+use CuyZ\Valinor\Tests\Integration\IntegrationTestCase;
 
-/**
- * @requires PHP >= 8.1
- */
-class EnumConstructorRegistrationMappingTest extends IntegrationTest
+class EnumConstructorRegistrationMappingTest extends IntegrationTestCase
 {
     public function test_constructor_with_no_argument_is_called_when_no_value_is_given(): void
     {
         try {
-            $result = (new MapperBuilder())
+            $result = $this->mapperBuilder()
                 ->registerConstructor(
                     BackedStringEnum::class,
                     fn (): BackedStringEnum => BackedStringEnum::FOO
@@ -32,7 +28,7 @@ class EnumConstructorRegistrationMappingTest extends IntegrationTest
     public function test_constructor_with_no_argument_is_not_called_when_value_is_given(): void
     {
         try {
-            $result = (new MapperBuilder())
+            $result = $this->mapperBuilder()
                 ->registerConstructor(
                     BackedStringEnum::class,
                     fn (): BackedStringEnum => BackedStringEnum::FOO
@@ -49,7 +45,7 @@ class EnumConstructorRegistrationMappingTest extends IntegrationTest
     public function test_constructor_with_one_argument_is_called_when_one_value_is_given(): void
     {
         try {
-            $result = (new MapperBuilder())
+            $result = $this->mapperBuilder()
                 ->registerConstructor(fn (string $value): BackedStringEnum => BackedStringEnum::from($value))
                 ->mapper()
                 ->map(BackedStringEnum::class, 'foo');
@@ -63,7 +59,7 @@ class EnumConstructorRegistrationMappingTest extends IntegrationTest
     public function test_constructor_with_several_arguments_is_called_when_values_are_given(): void
     {
         try {
-            $result = (new MapperBuilder())
+            $result = $this->mapperBuilder()
                 ->registerConstructor(fn (string $foo, int $bar): BackedStringEnum => BackedStringEnum::FOO)
                 ->mapper()
                 ->map(BackedStringEnum::class, [
@@ -80,7 +76,7 @@ class EnumConstructorRegistrationMappingTest extends IntegrationTest
     public function test_registered_native_constructor_is_called_when_one_argument_is_given(): void
     {
         try {
-            $result = (new MapperBuilder())
+            $result = $this->mapperBuilder()
                 ->registerConstructor(
                     BackedStringEnum::class,
                     fn (string $foo, int $bar): BackedStringEnum => BackedStringEnum::BAR
@@ -97,7 +93,7 @@ class EnumConstructorRegistrationMappingTest extends IntegrationTest
     public function test_map_to_enum_pattern_fetches_correct_constructor(): void
     {
         try {
-            $result = (new MapperBuilder())
+            $result = $this->mapperBuilder()
                 ->registerConstructor(
                     /**
                      * @return BackedStringEnum::BA*
@@ -121,9 +117,8 @@ class EnumConstructorRegistrationMappingTest extends IntegrationTest
     public function test_register_internal_from_constructor_is_overridden_by_library_constructor(): void
     {
         try {
-            (new MapperBuilder())
-                // PHP8.1 first-class callable syntax
-                ->registerConstructor([BackedStringEnum::class, 'from'])
+            $this->mapperBuilder()
+                ->registerConstructor(BackedStringEnum::from(...))
                 ->mapper()
                 ->map(BackedStringEnum::class, 'fiz');
         } catch (MappingError $exception) {
@@ -137,9 +132,8 @@ class EnumConstructorRegistrationMappingTest extends IntegrationTest
     public function test_register_internal_try_from_constructor_is_overridden_by_library_constructor(): void
     {
         try {
-            (new MapperBuilder())
-                // PHP8.1 first-class callable syntax
-                ->registerConstructor([BackedStringEnum::class, 'tryFrom'])
+            $this->mapperBuilder()
+                ->registerConstructor(BackedStringEnum::tryFrom(...))
                 ->mapper()
                 ->map(BackedStringEnum::class, 'fiz');
         } catch (MappingError $exception) {
