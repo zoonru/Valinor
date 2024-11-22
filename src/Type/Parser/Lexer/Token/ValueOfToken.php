@@ -10,8 +10,11 @@ use CuyZ\Valinor\Type\Parser\Exception\Magic\ValueOfClosingBracketMissing;
 use CuyZ\Valinor\Type\Parser\Exception\Magic\ValueOfOpeningBracketMissing;
 use CuyZ\Valinor\Type\Parser\Lexer\TokenStream;
 use CuyZ\Valinor\Type\Type;
+use CuyZ\Valinor\Type\Types\ArrayType;
 use CuyZ\Valinor\Type\Types\EnumType;
 use CuyZ\Valinor\Type\Types\Factory\ValueTypeFactory;
+use CuyZ\Valinor\Type\Types\ListType;
+use CuyZ\Valinor\Type\Types\ShapedArrayType;
 use CuyZ\Valinor\Type\Types\UnionType;
 use CuyZ\Valinor\Utility\IsSingleton;
 
@@ -35,6 +38,19 @@ final class ValueOfToken implements TraversingToken
 
         if ($stream->done() || !$stream->forward() instanceof ClosingBracketToken) {
             throw new ValueOfClosingBracketMissing($subType);
+        }
+
+        if ($subType instanceof ShapedArrayType) {
+            $list = [];
+            foreach ($subType->elements() as $element) {
+                $list []= $element->type();
+            }
+            if (count($list) > 0) {
+                return new UnionType(...$list);
+            }
+            return $list[0];
+        } elseif ($subType instanceof ArrayType || $subType instanceof ListType) {
+            return $subType->subType();
         }
 
         if (! $subType instanceof EnumType) {
