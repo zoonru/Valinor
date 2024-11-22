@@ -152,9 +152,15 @@ abstract class BaseArrayToken implements TraversingToken
         }
 
         if ($unsealedType) {
-            return ShapedArrayType::unsealed($unsealedType, ...$elements);
+            return $list
+                ? ShapedArrayType::unsealedList($unsealedType, ...$elements)
+                : ShapedArrayType::unsealed($unsealedType, ...$elements);
         } elseif ($isUnsealed) {
-            return ShapedArrayType::unsealedWithoutType(...$elements);
+            return $list
+                ? ShapedArrayType::unsealedListWithoutType(...$elements)
+                : ShapedArrayType::unsealedWithoutType(...$elements);
+        } elseif ($list) {
+            return ShapedArrayType::list(...$elements);
         }
 
         return new ShapedArrayType(...$elements);
