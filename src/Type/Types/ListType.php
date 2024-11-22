@@ -68,7 +68,7 @@ final class ListType implements CompositeTraversableType
         }
 
         if ($other instanceof ArrayType || $other instanceof IterableType) {
-            return $this->keyType()->matches($other->keyType())
+            return $other->keyType() !== ArrayKeyType::string()
                 && $this->subType->matches($other->subType());
         }
 

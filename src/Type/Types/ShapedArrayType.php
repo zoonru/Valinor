@@ -27,16 +27,8 @@ final class ShapedArrayType implements CompositeType
 
     private ?ArrayType $unsealedType = null;
 
-    public function __construct(
-        public readonly ArrayKeyType|null $extra_key,
-        public readonly Type|null $extra_type,
-        ShapedArrayElement ...$elements
-    ) {
-        if ($extra_type !== null) {
-            $extra_key ??= ArrayKeyType::default();
-        }
-        assert(is_null($extra_key) === is_null($extra_type));
-
+    public function __construct(ShapedArrayElement ...$elements)
+    {
         $this->elements = $elements;
 
         $keys = [];
@@ -176,14 +168,8 @@ final class ShapedArrayType implements CompositeType
     {
         $types = [];
 
-        foreach ([...$this->elements, $this->extra_key, $this->extra_type] as $element) {
-            if ($element === null) {
-                continue;
-            }
-            if ($element instanceof ShapedArrayElement) {
-                $element = $element->type();
-            }
-            $types[] = $type = $element;
+        foreach ($this->elements as $element) {
+            $types[] = $type = $element->type();
 
             if ($type instanceof CompositeType) {
                 $types = [...$types, ...$type->traverse()];

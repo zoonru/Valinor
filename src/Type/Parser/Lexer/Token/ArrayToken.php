@@ -19,10 +19,14 @@ use CuyZ\Valinor\Type\Parser\Lexer\TokenStream;
 use CuyZ\Valinor\Type\Type;
 use CuyZ\Valinor\Type\Types\ArrayKeyType;
 use CuyZ\Valinor\Type\Types\ArrayType;
+use CuyZ\Valinor\Type\Types\IntegerValueType;
 use CuyZ\Valinor\Type\Types\NonEmptyArrayType;
+use CuyZ\Valinor\Type\Types\ShapedArrayElement;
+use CuyZ\Valinor\Type\Types\ShapedArrayType;
+use CuyZ\Valinor\Type\Types\StringValueType;
 
 /** @internal */
-final class ArrayToken extends ShapedArrayToken
+final class ArrayToken implements TraversingToken
 {
     private static self $array;
 
@@ -55,7 +59,7 @@ final class ArrayToken extends ShapedArrayToken
         }
 
         if ($this->arrayType === ArrayType::class && $stream->next() instanceof OpeningCurlyBracketToken) {
-            return $this->shapedArrayType($stream, false);
+            return $this->shapedArrayType($stream);
         }
 
         return ($this->arrayType)::native();
@@ -82,6 +86,7 @@ final class ArrayToken extends ShapedArrayToken
 
         $keyType = ArrayKeyType::from($type);
         $subType = $stream->read();
+
         $arrayType = new ($this->arrayType)($keyType, $subType);
 
         if ($stream->done() || ! $stream->forward() instanceof ClosingBracketToken) {
