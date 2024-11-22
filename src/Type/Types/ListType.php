@@ -42,6 +42,10 @@ final class ListType implements CompositeTraversableType
             return false;
         }
 
+        if (! array_is_list($value)) {
+            return false;
+        }
+
         $i = 0;
 
         foreach ($value as $key => $item) {
