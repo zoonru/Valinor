@@ -7,9 +7,12 @@ namespace CuyZ\Valinor\Type\Types;
 use BackedEnum;
 use CuyZ\Valinor\Type\ClassType;
 use CuyZ\Valinor\Type\CombiningType;
+use CuyZ\Valinor\Type\Parser\Exception\Constant\ClassConstantCaseNotFound;
 use CuyZ\Valinor\Type\Parser\Exception\Enum\EnumCaseNotFound;
 use CuyZ\Valinor\Type\Parser\Lexer\Token\CaseFinder;
 use CuyZ\Valinor\Type\Type;
+use CuyZ\Valinor\Type\Types\Factory\ValueTypeFactory;
+use ReflectionClassConstant;
 use ReflectionEnum;
 use UnitEnum;
 
@@ -65,13 +68,27 @@ final class EnumType implements ClassType
             $namedCases[$case->name] = $case;
         }
 
-        $r = new ReflectionEnum($enumName);
-        foreach ($r->getConstants() as $key => $value) {
-            $namedCases[$key] = $value;
-        }
-
         $cases = (new CaseFinder($namedCases))->matching(explode('*', $pattern));
 
+        if (!$cases) {
+            $r = new ReflectionEnum($enumName);
+            if (! preg_match('/\*\s*\*/', $pattern)) {
+                $finder = new CaseFinder($r->getConstants(ReflectionClassConstant::IS_PUBLIC));
+                $cases = $finder->matching(explode('*', $pattern));
+            }
+
+            if (empty($cases)) {
+                throw new ClassConstantCaseNotFound($r->name, $pattern);
+            }
+
+            $cases = array_map(static fn ($value) => ValueTypeFactory::from($value), $cases);
+
+            if (count($cases) > 1) {
+                return new UnionType(...array_values($cases));
+            }
+
+            return reset($cases);
+        }
         return new self($enumName, $pattern, $cases);
     }
 
