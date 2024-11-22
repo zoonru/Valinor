@@ -24,8 +24,6 @@ use CuyZ\Valinor\Utility\Reflection\Reflection;
 use ReflectionClass;
 use ReflectionMethod;
 use CuyZ\Valinor\Utility\Reflection\DocParser;
-use ReflectionClass;
-use ReflectionMethod;
 
 use function array_filter;
 use function array_keys;
