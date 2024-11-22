@@ -39,10 +39,6 @@ final class KeyOfToken implements TraversingToken
             throw new KeyOfClosingBracketMissing($subType);
         }
 
-        if (! $subType instanceof EnumType) {
-            throw new KeyOfIncorrectSubType($subType);
-        }
-
         if ($subType instanceof ShapedArrayType) {
             $list = [];
             foreach ($subType->elements() as $element) {
@@ -54,6 +50,10 @@ final class KeyOfToken implements TraversingToken
             return $list[0];
         } elseif ($subType instanceof ArrayType) {
             return $subType->keyType();
+        }
+
+        if (! $subType instanceof EnumType) {
+            throw new KeyOfIncorrectSubType($subType);
         }
 
         if (! is_a($subType->className(), BackedEnum::class, true)) {
