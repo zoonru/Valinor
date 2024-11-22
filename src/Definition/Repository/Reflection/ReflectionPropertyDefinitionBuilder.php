@@ -61,7 +61,7 @@ final class ReflectionPropertyDefinitionBuilder
         $hasDefaultValue = false;
         $defaultValue = null;
         $isPublic = true;
-        $attributes = new AttributesContainer();
+        $attributes = new Attributes();
 
         if ($hasDefaultValue
             && ! $type instanceof UnresolvableType
@@ -73,6 +73,7 @@ final class ReflectionPropertyDefinitionBuilder
         return new PropertyDefinition(
             $name,
             $signature,
+            $type,
             $type,
             $hasDefaultValue,
             $defaultValue,
