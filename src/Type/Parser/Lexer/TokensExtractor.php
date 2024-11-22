@@ -17,6 +17,7 @@ final class TokensExtractor
         'Double colons' => '\:\:',
         'Triple dots' => '\.\.\.',
         'Dollar sign' => '\$',
+        'Equals' => '=',
         'Whitespace' => '\s+',
         'Union' => '\|',
         'Intersection' => '&',
