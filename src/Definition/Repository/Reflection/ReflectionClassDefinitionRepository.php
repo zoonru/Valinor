@@ -20,6 +20,7 @@ use CuyZ\Valinor\Definition\Repository\Reflection\TypeResolver\ReflectionTypeRes
 use CuyZ\Valinor\Type\GenericType;
 use CuyZ\Valinor\Type\ObjectType;
 use CuyZ\Valinor\Type\Parser\Factory\TypeParserFactory;
+use CuyZ\Valinor\Type\Parser\Lexer\Annotations;
 use CuyZ\Valinor\Utility\Reflection\Reflection;
 use ReflectionClass;
 use ReflectionMethod;
@@ -79,7 +80,7 @@ final class ReflectionClassDefinitionRepository implements ClassDefinitionReposi
         $result = [];
         $cl = Reflection::class($type->className());
         if ($magic) {
-            foreach (DocParser::magicProperties($cl) as $name => $property) {
+            foreach (Annotations::magicProperties($cl) as $name => $property) {
                 $typeResolver = $this->typeResolver($type, $cl);
                 $result [] = $this->propertyBuilder->forMagic(
                     $type->className(),

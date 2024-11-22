@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace CuyZ\Valinor\Type\Parser\Lexer;
 
+use ReflectionClass;
+
 use function array_filter;
 use function array_merge;
 use function current;
@@ -82,7 +84,23 @@ final class Annotations
         return $result;
     }
 
-    private function sanitizeDocComment(string $value): string
+    public static function magicProperties(ReflectionClass $reflection): array
+    {
+        $types = [];
+        $docComment = self::sanitizeDocComment($reflection->__toString());
+
+        $expression = '/@property\s+(?<type>.+)\s+\$([a-zA-Z_0-9]+)/u';
+
+        preg_match_all($expression, $docComment, $matches);
+
+        foreach ($matches[2] as $key => $name) {
+            $types[(string)$name] = $matches[1][$key];
+        }
+
+        return $types;
+    }
+
+    private static function sanitizeDocComment(string $value): string
     {
         $value = preg_replace('#^\s*/\*\*([^/]+)\*/\s*$#', '$1', $value);
 
