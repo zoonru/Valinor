@@ -18,6 +18,7 @@ use CuyZ\Valinor\Type\Parser\Lexer\Token\IntegerToken;
 use CuyZ\Valinor\Type\Parser\Lexer\Token\IntegerValueToken;
 use CuyZ\Valinor\Type\Parser\Lexer\Token\IntersectionToken;
 use CuyZ\Valinor\Type\Parser\Lexer\Token\IterableToken;
+use CuyZ\Valinor\Type\Parser\Lexer\Token\KeyOfToken;
 use CuyZ\Valinor\Type\Parser\Lexer\Token\ListToken;
 use CuyZ\Valinor\Type\Parser\Lexer\Token\NullableToken;
 use CuyZ\Valinor\Type\Parser\Lexer\Token\ValueOfToken;
