@@ -106,6 +106,17 @@ final class TypeCompiler
                     $type->elements()
                 ));
 
+                if ($type->isList()) {
+                    if ($type->hasUnsealedType()) {
+                        $unsealedType = $this->compile($type->unsealedType());
+
+                        return "$class::unsealedList($unsealedType, $elements)";
+                    } elseif ($type->isUnsealed()) {
+                        return "$class::unsealedListWithoutType($elements)";
+                    }
+
+                    return "$class::list($elements)";
+                }
                 if ($type->hasUnsealedType()) {
                     $unsealedType = $this->compile($type->unsealedType());
 
