@@ -59,7 +59,7 @@ final class EnumType implements ClassType
     /**
      * @param class-string<UnitEnum> $enumName
      */
-    public static function fromPattern(string $enumName, string $pattern): self
+    public static function fromPattern(string $enumName, string $pattern): Type
     {
         $namedCases = [];
 
