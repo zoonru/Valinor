@@ -10,6 +10,7 @@ use CuyZ\Valinor\Type\CombiningType;
 use CuyZ\Valinor\Type\Parser\Exception\Enum\EnumCaseNotFound;
 use CuyZ\Valinor\Type\Parser\Lexer\Token\CaseFinder;
 use CuyZ\Valinor\Type\Type;
+use ReflectionEnum;
 use UnitEnum;
 
 use function array_keys;
@@ -62,6 +63,11 @@ final class EnumType implements ClassType
         foreach ($enumName::cases() as $case) {
             /** @var UnitEnum $case */
             $namedCases[$case->name] = $case;
+        }
+
+        $r = new ReflectionEnum($enumName);
+        foreach ($r->getConstants() as $key => $value) {
+            $namedCases[$key] = $value;
         }
 
         $cases = (new CaseFinder($namedCases))->matching(explode('*', $pattern));
