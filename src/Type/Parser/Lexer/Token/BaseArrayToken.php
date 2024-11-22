@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace CuyZ\Valinor\Type\Parser\Lexer\Token;
 
+use AssertionError;
+use CuyZ\Valinor\Type\IntegerType;
 use CuyZ\Valinor\Type\Parser\Exception\Iterable\ShapedArrayClosingBracketMissing;
 use CuyZ\Valinor\Type\Parser\Exception\Iterable\ShapedArrayColonTokenMissing;
 use CuyZ\Valinor\Type\Parser\Exception\Iterable\ShapedArrayCommaMissing;
@@ -12,9 +14,13 @@ use CuyZ\Valinor\Type\Parser\Exception\Iterable\ShapedArrayEmptyElements;
 use CuyZ\Valinor\Type\Parser\Exception\Iterable\ShapedArrayInvalidUnsealedType;
 use CuyZ\Valinor\Type\Parser\Exception\Iterable\ShapedArrayUnexpectedTokenAfterSealedType;
 use CuyZ\Valinor\Type\Parser\Exception\Iterable\ShapedArrayWithoutElementsWithSealedType;
+use CuyZ\Valinor\Type\Parser\Exception\Iterable\ShapedListNonMonotonicKey;
+use CuyZ\Valinor\Type\Parser\Exception\Iterable\ShapedListRequiredValueAfterOptional;
+use CuyZ\Valinor\Type\Parser\Exception\Iterable\ShapedListStringKey;
 use CuyZ\Valinor\Type\Parser\Lexer\TokenStream;
 use CuyZ\Valinor\Type\Types\ArrayType;
 use CuyZ\Valinor\Type\Types\IntegerValueType;
+use CuyZ\Valinor\Type\Types\NativeIntegerType;
 use CuyZ\Valinor\Type\Types\ShapedArrayElement;
 use CuyZ\Valinor\Type\Types\ShapedArrayType;
 use CuyZ\Valinor\Type\Types\StringValueType;
@@ -30,6 +36,7 @@ abstract class BaseArrayToken implements TraversingToken
         $index = 0;
         $isUnsealed = false;
         $unsealedType = null;
+        $wasOptional = false;
 
         while (! $stream->done()) {
             if ($stream->next() instanceof ClosingCurlyBracketToken) {
@@ -123,6 +130,11 @@ abstract class BaseArrayToken implements TraversingToken
 
                 if ($key instanceof IntegerValueType) {
                     $index++;
+                    if ($list && $key->value() !== $index) {
+                        throw new ShapedListNonMonotonicKey($key->value(), $index);
+                    }
+                } elseif ($list) {
+                    throw new ShapedListStringKey($key->toString());
                 }
             } else {
                 if ($optional) {
@@ -140,6 +152,11 @@ abstract class BaseArrayToken implements TraversingToken
                 $type = $stream->read();
             }
 
+            if ($list && !$optional && $wasOptional) {
+                throw new ShapedListRequiredValueAfterOptional($key->toString());
+            }
+            $wasOptional = $optional;
+
             $elements[] = new ShapedArrayElement($key, $type, $optional);
 
             if ($stream->done()) {
@@ -149,6 +166,10 @@ abstract class BaseArrayToken implements TraversingToken
 
         if ($elements === []) {
             throw new ShapedArrayEmptyElements();
+        }
+
+        if ($list && $unsealedType !== null && !$unsealedType->keyType()->isMatchedBy(NativeIntegerType::get())) {
+            throw new ShapedListStringKey($unsealedType->keyType()->toString());
         }
 
         if ($unsealedType) {
