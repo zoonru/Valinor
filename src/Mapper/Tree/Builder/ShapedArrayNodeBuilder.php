@@ -15,10 +15,6 @@ use function is_array;
 /** @internal */
 final class ShapedArrayNodeBuilder implements NodeBuilder
 {
-    public function __construct()
-    {
-        
-    }
     public function build(Shell $shell, RootNodeBuilder $rootBuilder): TreeNode
     {
         $type = $shell->type();

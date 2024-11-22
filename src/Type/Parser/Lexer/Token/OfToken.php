@@ -54,9 +54,9 @@ final class OfToken implements TraversingToken
             $list = [];
             foreach ($subType->elements() as $element) {
                 if ($this->key) {
-                    $list []= $element->key();
+                    $list [] = $element->key();
                 } else {
-                    $list []= $element->type();
+                    $list [] = $element->type();
                 }
             }
             $subType = new UnionType(...$list);

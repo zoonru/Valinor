@@ -36,7 +36,6 @@ use CuyZ\Valinor\Type\Types\NumericStringType;
 use CuyZ\Valinor\Type\Types\PositiveIntegerType;
 use CuyZ\Valinor\Type\Types\ShapedArrayElement;
 use CuyZ\Valinor\Type\Types\ShapedArrayType;
-use CuyZ\Valinor\Type\Types\ShapedListType;
 use CuyZ\Valinor\Type\Types\StringValueType;
 use CuyZ\Valinor\Type\Types\UndefinedObjectType;
 use CuyZ\Valinor\Type\Types\UnionType;
@@ -117,18 +116,6 @@ final class TypeCompiler
 
                 return "new $class($elements)";
 
-
-            case $type instanceof ShapedListType:
-                $shapes = array_map(
-                    fn (ShapedArrayElement $element) => $this->compileArrayShapeElement($element),
-                    $type->elements()
-                );
-                $shapes = implode(', ', $shapes);
-
-                return "new $class("
-                    .($type->extra ? $this->compile($type->extra) : 'null').', '
-                    ."...[$shapes])";
-                    
             case $type instanceof ArrayType:
             case $type instanceof NonEmptyArrayType:
                 if ($type->toString() === 'array' || $type->toString() === 'non-empty-array') {

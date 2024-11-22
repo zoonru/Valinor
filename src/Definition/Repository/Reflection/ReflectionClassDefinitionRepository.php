@@ -20,17 +20,12 @@ use CuyZ\Valinor\Definition\Repository\Reflection\TypeResolver\ReflectionTypeRes
 use CuyZ\Valinor\Type\GenericType;
 use CuyZ\Valinor\Type\ObjectType;
 use CuyZ\Valinor\Type\Parser\Factory\TypeParserFactory;
-use CuyZ\Valinor\Type\Parser\TypeParser;
-use CuyZ\Valinor\Type\Type;
-use CuyZ\Valinor\Type\Types\InterfaceType;
-use CuyZ\Valinor\Type\Types\UnresolvableType;
 use CuyZ\Valinor\Utility\Reflection\Reflection;
 use ReflectionClass;
 use ReflectionMethod;
 use CuyZ\Valinor\Utility\Reflection\DocParser;
 use ReflectionClass;
 use ReflectionMethod;
-use ReflectionProperty;
 
 use function array_filter;
 use function array_keys;
@@ -88,7 +83,7 @@ final class ReflectionClassDefinitionRepository implements ClassDefinitionReposi
         if ($magic) {
             foreach (DocParser::magicProperties($cl) as $name => $property) {
                 $typeResolver = $this->typeResolver($type, $cl);
-                $result []= $this->propertyBuilder->forMagic(
+                $result [] = $this->propertyBuilder->forMagic(
                     $type->className(),
                     $name,
                     $property,
@@ -98,7 +93,7 @@ final class ReflectionClassDefinitionRepository implements ClassDefinitionReposi
         } else {
             foreach ($cl->getProperties() as $property) {
                 $typeResolver = $this->typeResolver($type, $property->getDeclaringClass());
-                $result []= $this->propertyBuilder->for($property, $typeResolver);
+                $result [] = $this->propertyBuilder->for($property, $typeResolver);
             }
         }
         return $result;

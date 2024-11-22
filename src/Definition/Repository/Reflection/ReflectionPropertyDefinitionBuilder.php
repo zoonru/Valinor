@@ -18,9 +18,7 @@ use ReflectionProperty;
 /** @internal */
 final class ReflectionPropertyDefinitionBuilder
 {
-    public function __construct(private AttributesRepository $attributesRepository)
-    {
-    }
+    public function __construct(private AttributesRepository $attributesRepository) {}
 
     public function for(ReflectionProperty $reflection, ReflectionTypeResolver $typeResolver): PropertyDefinition
     {

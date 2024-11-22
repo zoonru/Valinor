@@ -20,7 +20,6 @@ use CuyZ\Valinor\Type\Parser\Lexer\Token\IntersectionToken;
 use CuyZ\Valinor\Type\Parser\Lexer\Token\IterableToken;
 use CuyZ\Valinor\Type\Parser\Lexer\Token\ListToken;
 use CuyZ\Valinor\Type\Parser\Lexer\Token\NullableToken;
-use CuyZ\Valinor\Type\Parser\Lexer\Token\OfToken;
 use CuyZ\Valinor\Type\Parser\Lexer\Token\ValueOfToken;
 use CuyZ\Valinor\Type\Parser\Lexer\Token\OpeningBracketToken;
 use CuyZ\Valinor\Type\Parser\Lexer\Token\OpeningCurlyBracketToken;
