@@ -47,9 +47,9 @@ final class ReflectionMethodDefinitionBuilder
 
         if ($returnType instanceof UnresolvableType) {
             $returnType = $returnType->forMethodReturnType($signature);
-        } elseif (! $returnType->matches($nativeReturnType)) {
+        }/* elseif (! $returnType->matches($nativeReturnType)) {
             $returnType = UnresolvableType::forNonMatchingMethodReturnTypes($name, $nativeReturnType, $returnType);
-        }
+        }*/
 
         return new MethodDefinition(
             $name,

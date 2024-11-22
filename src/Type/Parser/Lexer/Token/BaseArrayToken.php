@@ -129,8 +129,8 @@ abstract class BaseArrayToken implements TraversingToken
                 }
 
                 if ($key instanceof IntegerValueType) {
-                    $index++;
-                    if ($list && $key->value() !== $index) {
+                    $expected = $index++;
+                    if ($list && $key->value() !== $expected) {
                         throw new ShapedListNonMonotonicKey($key->value(), $index);
                     }
                 } elseif ($list) {
