@@ -43,6 +43,9 @@ final class ClassTemplatesResolver
             '@phpstan-template',
             '@psalm-template',
             '@template',
+            '@phpstan-template-covariant',
+            '@psalm-template-covariant',
+            '@template-covariant',
         );
 
         foreach ($annotations as $annotation) {
