@@ -97,6 +97,7 @@ final class UnionNodeBuilder implements NodeBuilder
 
             return $scalars[0];
         }
+        return $all[0];
 
         throw new TooManyResolvedTypesFromUnion($type);
     }
