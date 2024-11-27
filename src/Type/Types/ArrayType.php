@@ -81,6 +81,11 @@ final class ArrayType implements CompositeTraversableType
             return $other->isMatchedBy($this);
         }
 
+        if ($other instanceof ListType) {
+            return $this->keyType->matches($other->keyType())
+                && $this->subType->matches($other->subType());
+        }
+
         if (! $other instanceof self && ! $other instanceof IterableType) {
             return false;
         }

@@ -9,6 +9,7 @@ use CuyZ\Valinor\Tests\Fake\Type\FakeType;
 use CuyZ\Valinor\Type\Types\ArrayKeyType;
 use CuyZ\Valinor\Type\Types\ArrayType;
 use CuyZ\Valinor\Type\Types\IterableType;
+use CuyZ\Valinor\Type\Types\ListType;
 use CuyZ\Valinor\Type\Types\MixedType;
 use CuyZ\Valinor\Type\Types\NativeStringType;
 use CuyZ\Valinor\Type\Types\UnionType;
@@ -113,6 +114,16 @@ final class ArrayTypeTest extends TestCase
         $arrayOfTypeB = new ArrayType(ArrayKeyType::default(), $typeB);
 
         self::assertTrue($arrayOfTypeA->matches($arrayOfTypeB));
+    }
+
+    public function test_matches_valid_list_type(): void
+    {
+        $typeA = FakeType::matching($typeB = new FakeType());
+
+        $arrayOfTypeA = new ArrayType(ArrayKeyType::integer(), $typeA);
+        $listOfTypeB = new ListType($typeB);
+
+        self::assertTrue($arrayOfTypeA->matches($listOfTypeB));
     }
 
     public function test_does_not_match_invalid_array_type(): void
