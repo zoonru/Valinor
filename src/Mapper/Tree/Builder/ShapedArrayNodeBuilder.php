@@ -57,11 +57,11 @@ final class ShapedArrayNodeBuilder implements NodeBuilder
                 continue;
             }
 
+            $children[$key] = $rootBuilder->build($child);
+
             if (!$children[$key]->isValid()) {
                 return $children;
             }
-
-            $children[$key] = $rootBuilder->build($child);
 
             unset($value[$key]);
         }
