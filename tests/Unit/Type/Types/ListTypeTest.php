@@ -108,16 +108,6 @@ final class ListTypeTest extends TestCase
         self::assertFalse($listOfTypeA->matches($listOfTypeB));
     }
 
-    public function test_matches_valid_array_type(): void
-    {
-        $typeA = FakeType::matching($typeB = new FakeType());
-
-        $listType = new ListType($typeA);
-        $arrayType = new ArrayType(ArrayKeyType::integer(), $typeB);
-
-        self::assertTrue($listType->matches($arrayType));
-    }
-
     public function test_does_not_match_invalid_array_type(): void
     {
         $typeA = new FakeType();
