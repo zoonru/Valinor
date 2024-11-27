@@ -181,11 +181,6 @@ final class ShapedArrayType implements CompositeType
             return false;
         }
 
-        if ($other->isUnsealed) {
-            return $this->isUnsealed
-                && $this->unsealedType()->matches($other->unsealedType());
-        }
-
         foreach ($this->elements as $element) {
             foreach ($other->elements as $otherElement) {
                 if ($element->key()->matches($otherElement->key())
@@ -198,6 +193,11 @@ final class ShapedArrayType implements CompositeType
             if (! $element->isOptional()) {
                 return false;
             }
+        }
+
+        if ($other->isUnsealed) {
+            return $this->isUnsealed
+                && $this->unsealedType()->matches($other->unsealedType());
         }
 
         return true;
