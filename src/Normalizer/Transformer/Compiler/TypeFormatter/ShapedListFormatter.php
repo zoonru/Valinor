@@ -37,10 +37,6 @@ final class ShapedListFormatter implements TypeFormatter
     {
         $methodName = $this->methodName();
 
-        if ($class->hasMethod($methodName)) {
-            return $class;
-        }
-
         $unsealedType = $this->type->isUnsealed ? $this->type->unsealedType() : null;
 
         if ($unsealedType !== null && ! $unsealedType instanceof VacantType) {
@@ -71,7 +67,7 @@ final class ShapedListFormatter implements TypeFormatter
                 ->withBody(
                     Node::variable('result')->assign(Node::array())->asExpression(),
                     Node::forEach(
-                        value: Node::variable('value'),
+                        value: Node::functionCall('array_values', [Node::variable('value')]),
                         key: 'key',
                         item: 'item',
                         body: Node::variable('result')->key(Node::variable('key'))->assign(

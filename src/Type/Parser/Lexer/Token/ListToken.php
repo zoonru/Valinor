@@ -109,9 +109,6 @@ final class ListToken implements TraversingToken
             }
 
             if ($stream->next() instanceof TripleDotsToken) {
-                if ($isUnsealed) {
-                    throw new ShapedListDuplicateSplat($elements);
-                }
                 $isUnsealed = true;
                 $stream->forward();
             }
@@ -120,9 +117,16 @@ final class ListToken implements TraversingToken
                 throw new ShapedListClosingBracketMissing($elements, unsealedType: false);
             }
 
-            if ($isUnsealed && ($stream->next() instanceof ClosingCurlyBracketToken || $stream->next() instanceof CommaToken)) {
+            $next = $stream->next();
+
+            if ($isUnsealed && ($next instanceof ClosingCurlyBracketToken || $next instanceof CommaToken)) {
                 $stream->forward();
-                break;
+
+                if ($next instanceof CommaToken && ! $stream->done() && $stream->next() instanceof TripleDotsToken) {
+                    throw new ShapedListDuplicateSplat($elements);
+                }
+
+                return ShapedListType::from($elements, $isUnsealed, $unsealedType);
             }
 
             // Handle ...<type> shorthand for ...list<type>
@@ -153,14 +157,18 @@ final class ListToken implements TraversingToken
                         $unexpected[] = $stream->forward();
                     }
 
-                    if (isset($unexpected[0], $unexpected[1]) && $unexpected[0] instanceof CommaToken && $unexpected[1] instanceof TripleDotsToken) {
-                        throw new ShapedListDuplicateSplat($elements);
+                    if (($unexpected[0] ?? null) instanceof CommaToken) {
+                        if (($unexpected[1] ?? null) instanceof TripleDotsToken) {
+                            throw new ShapedListDuplicateSplat($elements);
+                        }
                     }
 
                     throw new ShapedArrayUnexpectedTokenAfterSealedType($elements, $unsealedType, $unexpected);
                 }
 
-                continue;
+                $stream->forward();
+
+                return ShapedListType::from($elements, $isUnsealed, $unsealedType);
             }
 
             $type = $stream->read();
@@ -187,14 +195,18 @@ final class ListToken implements TraversingToken
                         $unexpected[] = $stream->forward();
                     }
 
-                    if (isset($unexpected[0], $unexpected[1]) && $unexpected[0] instanceof CommaToken && $unexpected[1] instanceof TripleDotsToken) {
-                        throw new ShapedListDuplicateSplat($elements);
+                    if (($unexpected[0] ?? null) instanceof CommaToken) {
+                        if (($unexpected[1] ?? null) instanceof TripleDotsToken) {
+                            throw new ShapedListDuplicateSplat($elements);
+                        }
                     }
 
                     throw new ShapedArrayUnexpectedTokenAfterSealedType($elements, $unsealedType, $unexpected);
                 }
 
-                continue;
+                $stream->forward();
+
+                return ShapedListType::from($elements, $isUnsealed, $unsealedType);
             }
 
             $optional = false;

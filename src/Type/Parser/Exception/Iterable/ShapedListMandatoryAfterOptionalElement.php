@@ -8,8 +8,6 @@ use CuyZ\Valinor\Type\Parser\Exception\InvalidType;
 use CuyZ\Valinor\Type\Types\ShapedArrayElement;
 use RuntimeException;
 
-use function array_filter;
-use function array_map;
 use function implode;
 
 /** @internal */
@@ -17,13 +15,11 @@ final class ShapedListMandatoryAfterOptionalElement extends RuntimeException imp
 {
     public function __construct(int $index, ShapedArrayElement ...$elements)
     {
-        $hasOptional = array_filter($elements, fn (ShapedArrayElement $element) => $element->isOptional()) !== [];
-        $parts = array_map(
-            static fn (ShapedArrayElement $element) => $hasOptional
-                ? $element->key()->value() . ($element->isOptional() ? '?: ' : ': ') . $element->type()->toString()
-                : $element->type()->toString(),
-            $elements,
-        );
+        $parts = [];
+
+        foreach ($elements as $element) {
+            $parts[] = $element->key()->value() . ($element->isOptional() ? '?: ' : ': ') . $element->type()->toString();
+        }
 
         $signature = 'list{' . implode(', ', $parts) . '}';
 
