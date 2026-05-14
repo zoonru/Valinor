@@ -45,6 +45,7 @@ use CuyZ\Valinor\Type\Types\NumericStringType;
 use CuyZ\Valinor\Type\Types\PositiveIntegerType;
 use CuyZ\Valinor\Type\Types\ScalarConcreteType;
 use CuyZ\Valinor\Type\Types\ShapedArrayType;
+use CuyZ\Valinor\Type\Types\ShapedListType;
 use CuyZ\Valinor\Type\Types\StringValueType;
 use CuyZ\Valinor\Type\Types\UndefinedObjectType;
 use CuyZ\Valinor\Type\Types\UnionType;
@@ -706,6 +707,42 @@ final class LexingParserTest extends UnitTestCase
             'type' => ShapedArrayType::class,
         ];
 
+        yield 'Unsealed shaped array with shorthand generic type' => [
+            'raw' => 'array{foo: string, ...<int>}',
+            'transformed' => 'array{foo: string, ...array<int>}',
+            'type' => ShapedArrayType::class,
+        ];
+
+        yield 'Unsealed shaped array with shorthand generic key and value type' => [
+            'raw' => 'array{foo: string, ...<string, int>}',
+            'transformed' => 'array{foo: string, ...array<string, int>}',
+            'type' => ShapedArrayType::class,
+        ];
+
+        yield 'Shaped list' => [
+            'raw' => 'list{string, int}',
+            'transformed' => 'list{string, int}',
+            'type' => ShapedListType::class,
+        ];
+
+        yield 'Shaped list with explicit keys' => [
+            'raw' => 'list{0: string, 1: int}',
+            'transformed' => 'list{string, int}',
+            'type' => ShapedListType::class,
+        ];
+
+        yield 'Shaped list with optional element using explicit key' => [
+            'raw' => 'list{0: string, 1?: int}',
+            'transformed' => 'list{0: string, 1?: int}',
+            'type' => ShapedListType::class,
+        ];
+
+        yield 'Shaped list unsealed with shorthand generic type' => [
+            'raw' => 'list{string, ...<float>}',
+            'transformed' => 'list{string, ...list<float>}',
+            'type' => ShapedListType::class,
+        ];
+
         yield 'Iterable type' => [
             'raw' => 'iterable',
             'transformed' => 'iterable',
@@ -1150,6 +1187,30 @@ final class LexingParserTest extends UnitTestCase
             'type' => UnionType::class,
         ];
 
+        yield 'key-of<list{string, int}>' => [
+            'raw' => 'key-of<list{string, int}>',
+            'transformed' => '0|1',
+            'type' => UnionType::class,
+        ];
+
+        yield 'key-of<list{string}>' => [
+            'raw' => 'key-of<list{string}>',
+            'transformed' => '0',
+            'type' => IntegerValueType::class,
+        ];
+
+        yield 'value-of<list{string, int}>' => [
+            'raw' => 'value-of<list{string, int}>',
+            'transformed' => 'string|int',
+            'type' => UnionType::class,
+        ];
+
+        yield 'value-of<list{string}>' => [
+            'raw' => 'value-of<list{string}>',
+            'transformed' => 'string',
+            'type' => NativeStringType::class,
+        ];
+
         yield 'Scalar' => [
             'raw' => 'scalar',
             'transformed' => 'scalar',
@@ -1354,6 +1415,94 @@ final class LexingParserTest extends UnitTestCase
 
         self::assertInstanceOf(UnresolvableType::class, $type);
         self::assertSame('The closing bracket is missing for `non-empty-list<string>`.', $type->message());
+    }
+
+    public function test_shaped_list_with_explicit_key_after_implicit_throws_exception(): void
+    {
+        $type = $this->parse('list{string, 1: int}');
+
+        self::assertInstanceOf(UnresolvableType::class, $type);
+        self::assertSame('Cannot mix explicit and implicit keys in shaped list `list{string}`.', $type->message());
+    }
+
+    public function test_shaped_list_with_implicit_key_after_explicit_throws_exception(): void
+    {
+        $type = $this->parse('list{0: string, int}');
+
+        self::assertInstanceOf(UnresolvableType::class, $type);
+        self::assertSame('Cannot mix explicit and implicit keys in shaped list `list{string}`.', $type->message());
+    }
+
+    public function test_shaped_list_with_duplicate_splat_throws_exception(): void
+    {
+        $type = $this->parse('list{int, ...float, ...string}');
+
+        self::assertInstanceOf(UnresolvableType::class, $type);
+        self::assertSame('A shaped list can only have one splat element in `list{int, ..., ...}`.', $type->message());
+    }
+
+    public function test_shaped_list_with_duplicate_shorthand_splat_throws_exception(): void
+    {
+        $type = $this->parse('list{int, ...<float>, ...string}');
+
+        self::assertInstanceOf(UnresolvableType::class, $type);
+        self::assertSame('A shaped list can only have one splat element in `list{int, ..., ...}`.', $type->message());
+    }
+
+    public function test_shaped_list_with_duplicate_splat_with_optional_elements_throws_exception(): void
+    {
+        $type = $this->parse('list{0: int, 1?: string, ...float, ...string}');
+
+        self::assertInstanceOf(UnresolvableType::class, $type);
+        self::assertSame('A shaped list can only have one splat element in `list{0: int, 1?: string, ..., ...}`.', $type->message());
+    }
+
+    public function test_shaped_list_with_duplicate_shorthand_splat_with_two_unexpected_tokens_throws_exception(): void
+    {
+        $type = $this->parse('list{int, ...<float>, ...}');
+
+        self::assertInstanceOf(UnresolvableType::class, $type);
+        self::assertSame('A shaped list can only have one splat element in `list{int, ..., ...}`.', $type->message());
+    }
+
+    public function test_shaped_list_with_mixed_keys_with_optional_elements_throws_exception(): void
+    {
+        $type = $this->parse('list{0: string, 1?: int, float}');
+
+        self::assertInstanceOf(UnresolvableType::class, $type);
+        self::assertSame('Cannot mix explicit and implicit keys in shaped list `list{0: string, 1?: int}`.', $type->message());
+    }
+
+    public function test_shaped_list_colon_token_missing_after_optional_marker_throws_exception(): void
+    {
+        $type = $this->parse('list{0? int}');
+
+        self::assertInstanceOf(UnresolvableType::class, $type);
+        self::assertSame('A colon symbol is missing in shaped list signature `list{0?`.', $type->message());
+    }
+
+    public function test_shaped_array_with_duplicate_bare_splat_throws_exception(): void
+    {
+        $type = $this->parse('array{0: int, ..., ...}');
+
+        self::assertInstanceOf(UnresolvableType::class, $type);
+        self::assertSame('A shaped array can only have one splat element in `array{0: int, ..., ...}`.', $type->message());
+    }
+
+    public function test_shaped_array_with_duplicate_typed_splat_throws_exception(): void
+    {
+        $type = $this->parse('array{0: int, ...int, ...string}');
+
+        self::assertInstanceOf(UnresolvableType::class, $type);
+        self::assertSame('A shaped array can only have one splat element in `array{0: int, ..., ...}`.', $type->message());
+    }
+
+    public function test_shaped_array_with_duplicate_shorthand_splat_throws_exception(): void
+    {
+        $type = $this->parse('array{0: int, ...<int>, ...}');
+
+        self::assertInstanceOf(UnresolvableType::class, $type);
+        self::assertSame('A shaped array can only have one splat element in `array{0: int, ..., ...}`.', $type->message());
     }
 
     public function test_invalid_iterable_key_throws_exception(): void
