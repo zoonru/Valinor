@@ -1593,6 +1593,14 @@ final class LexingParserTest extends UnitTestCase
         self::assertSame('Missing closing curly bracket in shaped list signature `list{string, ...`.', $type->message());
     }
 
+    public function test_shaped_list_missing_closing_bracket_after_trailing_comma_throws_exception(): void
+    {
+        $type = $this->parse('list{string,');
+
+        self::assertInstanceOf(UnresolvableType::class, $type);
+        self::assertSame('Missing closing curly bracket in shaped list signature `list{string`.', $type->message());
+    }
+
     public function test_shaped_list_missing_closing_bracket_after_shorthand_splat_opening_bracket_throws_exception(): void
     {
         $type = $this->parse('list{string, ...<');
@@ -1604,6 +1612,14 @@ final class LexingParserTest extends UnitTestCase
     public function test_shaped_list_missing_shorthand_splat_closing_bracket_throws_exception(): void
     {
         $type = $this->parse('list{string, ...<float');
+
+        self::assertInstanceOf(UnresolvableType::class, $type);
+        self::assertSame('Missing closing curly bracket in shaped list signature `list{string, ...list<float>`.', $type->message());
+    }
+
+    public function test_shaped_list_missing_closing_bracket_after_shorthand_splat_type_throws_exception(): void
+    {
+        $type = $this->parse('list{string, ...<float>');
 
         self::assertInstanceOf(UnresolvableType::class, $type);
         self::assertSame('Missing closing curly bracket in shaped list signature `list{string, ...list<float>`.', $type->message());
@@ -1649,12 +1665,28 @@ final class LexingParserTest extends UnitTestCase
         self::assertSame('Missing elements in shaped array signature `array{...float}`.', $type->message());
     }
 
+    public function test_shaped_list_typed_splat_missing_closing_bracket_throws_exception(): void
+    {
+        $type = $this->parse('list{string, ...float');
+
+        self::assertInstanceOf(UnresolvableType::class, $type);
+        self::assertSame('Missing closing curly bracket in shaped list signature `list{string, float`.', $type->message());
+    }
+
     public function test_shaped_list_typed_splat_with_unexpected_token_throws_exception(): void
     {
         $type = $this->parse('list{string, ...float int}');
 
         self::assertInstanceOf(UnresolvableType::class, $type);
         self::assertSame('Unexpected `int` after sealed type in shaped array signature `array{0: string, ...floatint`, expected a `}`.', $type->message());
+    }
+
+    public function test_shaped_list_typed_splat_with_nested_list_missing_closing_bracket_throws_exception(): void
+    {
+        $type = $this->parse('list{string, ...list<float>');
+
+        self::assertInstanceOf(UnresolvableType::class, $type);
+        self::assertSame('Missing closing curly bracket in shaped list signature `list{string, list<float>`.', $type->message());
     }
 
     public function test_shaped_list_missing_element_type_throws_exception(): void
@@ -1737,12 +1769,68 @@ final class LexingParserTest extends UnitTestCase
         self::assertSame('A shaped array can only have one splat element in `array{0: int, ..., ...}`.', $type->message());
     }
 
+    public function test_shaped_array_shorthand_splat_missing_subtype_throws_exception(): void
+    {
+        $type = $this->parse('array{0: int, ...<');
+
+        self::assertInstanceOf(UnresolvableType::class, $type);
+        self::assertSame('The closing bracket is missing for `array`.', $type->message());
+    }
+
+    public function test_shaped_array_shorthand_splat_missing_value_type_throws_exception(): void
+    {
+        $type = $this->parse('array{0: int, ...<string,');
+
+        self::assertInstanceOf(UnresolvableType::class, $type);
+        self::assertSame('The closing bracket is missing for `array`.', $type->message());
+    }
+
+    public function test_shaped_array_shorthand_splat_with_invalid_key_type_throws_exception(): void
+    {
+        $type = $this->parse('array{0: int, ...<float, string>}');
+
+        self::assertInstanceOf(UnresolvableType::class, $type);
+        self::assertSame('Invalid type `array<float, string>`: invalid array-key element(s) `float`, each element must be an integer or a string.', $type->message());
+    }
+
+    public function test_shaped_array_shorthand_splat_with_invalid_key_type_missing_closing_bracket_throws_exception(): void
+    {
+        $type = $this->parse('array{0: int, ...<float, string');
+
+        self::assertInstanceOf(UnresolvableType::class, $type);
+        self::assertSame('The closing bracket is missing for `array`.', $type->message());
+    }
+
+    public function test_shaped_array_shorthand_splat_missing_final_closing_bracket_throws_exception(): void
+    {
+        $type = $this->parse('array{0: int, ...<string, float>');
+
+        self::assertInstanceOf(UnresolvableType::class, $type);
+        self::assertSame('Missing closing curly bracket in shaped array signature `array{0: int, ...array<string, float>`.', $type->message());
+    }
+
+    public function test_shaped_array_shorthand_splat_missing_subtype_closing_bracket_throws_exception(): void
+    {
+        $type = $this->parse('array{0: int, ...<string');
+
+        self::assertInstanceOf(UnresolvableType::class, $type);
+        self::assertSame('The closing bracket is missing for `array<string>`.', $type->message());
+    }
+
     public function test_shaped_array_shorthand_splat_with_unexpected_token_after_comma_throws_exception(): void
     {
         $type = $this->parse('array{0: int, ...<int>, string}');
 
         self::assertInstanceOf(UnresolvableType::class, $type);
         self::assertSame('Unexpected `,string` after sealed type in shaped array signature `array{0: int, ...array<int>,string`, expected a `}`.', $type->message());
+    }
+
+    public function test_shaped_list_with_trailing_comma_can_be_followed_by_union(): void
+    {
+        $type = $this->parse('list{string,}|null');
+
+        self::assertInstanceOf(UnionType::class, $type);
+        self::assertSame('list{string}|null', $type->toString());
     }
 
     public function test_invalid_iterable_key_throws_exception(): void
