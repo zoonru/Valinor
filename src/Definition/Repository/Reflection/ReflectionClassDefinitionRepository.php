@@ -26,7 +26,9 @@ use CuyZ\Valinor\Type\Type;
 use CuyZ\Valinor\Type\Types\InterfaceType;
 use CuyZ\Valinor\Type\Types\NativeClassType;
 use CuyZ\Valinor\Type\Types\UnresolvableType;
+use CuyZ\Valinor\Utility\Reflection\Annotations;
 use CuyZ\Valinor\Utility\Reflection\Reflection;
+use ReflectionClass;
 use ReflectionMethod;
 use ReflectionProperty;
 
@@ -71,7 +73,7 @@ final class ReflectionClassDefinitionRepository implements ClassDefinitionReposi
         $this->importedTypeAliasResolver = new ClassImportedTypeAliasResolver($this->typeParserFactory);
     }
 
-    public function for(ObjectType $type): ClassDefinition
+    public function for(ObjectType $type, bool $magic = false): ClassDefinition
     {
         $reflection = Reflection::class($type->className());
 
@@ -89,7 +91,7 @@ final class ReflectionClassDefinitionRepository implements ClassDefinitionReposi
             $reflection->name,
             $type,
             new Attributes(...$this->attributesRepository->for($reflection)),
-            new Properties(...$this->properties($type, $typeResolver)),
+            new Properties(...$this->properties($type, $typeResolver, $magic)),
             new Methods(...$this->methods($type, $typeResolver)),
             $reflection->isFinal(),
             $reflection->isAbstract(),
@@ -131,10 +133,35 @@ final class ReflectionClassDefinitionRepository implements ClassDefinitionReposi
     /**
      * @return list<PropertyDefinition>
      */
-    private function properties(ObjectType $type, ReflectionTypeResolver $typeResolver): array
+    private function properties(ObjectType $type, ReflectionTypeResolver $typeResolver, bool $magic): array
     {
         $reflection = Reflection::class($type->className());
 
+        if ($magic) {
+            $result = [];
+            $className = $type->className();
+            foreach (Annotations::magicProperties($reflection) as $name => $propertyType) {
+                $name = $name;
+                $signature = "$className::\$$name";
+                $type = $typeResolver->resolveType(null, $propertyType);
+                $hasDefaultValue = false;
+                $defaultValue = null;
+                $isPublic = true;
+                $attributes = new Attributes();
+
+                $result []= new PropertyDefinition(
+                    $name,
+                    $signature,
+                    $type,
+                    $type,
+                    $hasDefaultValue,
+                    $defaultValue,
+                    $isPublic,
+                    $attributes
+                );
+            }
+            return $result;
+        }
         $properties = [];
 
         foreach ($reflection->getProperties() as $property) {
