@@ -26,7 +26,9 @@ use CuyZ\Valinor\Type\Type;
 use CuyZ\Valinor\Type\Types\InterfaceType;
 use CuyZ\Valinor\Type\Types\NativeClassType;
 use CuyZ\Valinor\Type\Types\UnresolvableType;
+use CuyZ\Valinor\Utility\Reflection\Annotations;
 use CuyZ\Valinor\Utility\Reflection\Reflection;
+use ReflectionClass;
 use ReflectionMethod;
 use ReflectionProperty;
 
@@ -136,6 +138,7 @@ final class ReflectionClassDefinitionRepository implements ClassDefinitionReposi
         $reflection = Reflection::class($type->className());
 
         $properties = [];
+        $parentClasses = [];
 
         foreach ($reflection->getProperties() as $property) {
             $declaringClass = $property->getDeclaringClass();
@@ -144,8 +147,9 @@ final class ReflectionClassDefinitionRepository implements ClassDefinitionReposi
                 $properties[$property->name] = $this->propertyBuilder->for($property, $typeResolver);
             } else {
                 $parentClass = $this->parentTypeResolver->resolveParentTypeFor($type);
+                $parentClasses[$parentClass->toString()] ??= $this->for($parentClass);
 
-                $properties[$property->name] = $this->for($parentClass)->properties->get($property->name);
+                $properties[$property->name] = $parentClasses[$parentClass->toString()]->properties->get($property->name);
             }
         }
 
@@ -176,6 +180,7 @@ final class ReflectionClassDefinitionRepository implements ClassDefinitionReposi
     {
         $reflection = Reflection::class($type->className());
         $methods = array_filter($reflection->getMethods(), $this->shouldMethodBeIncluded(...));
+        $parentClasses = [];
 
         // Because `ReflectionMethod::getMethods()` wont list the constructor if
         // it comes from a parent class AND is not public, we need to manually
@@ -184,7 +189,7 @@ final class ReflectionClassDefinitionRepository implements ClassDefinitionReposi
             $methods[] = $reflection->getMethod('__construct');
         }
 
-        return array_map(function (ReflectionMethod $method) use ($type, $typeResolver) {
+        return array_map(function (ReflectionMethod $method) use ($type, $typeResolver, &$parentClasses) {
             $declaringClass = $method->getDeclaringClass();
 
             if ($declaringClass->name === $type->className()) {
@@ -192,8 +197,9 @@ final class ReflectionClassDefinitionRepository implements ClassDefinitionReposi
             }
 
             $parentClass = $this->parentTypeResolver->resolveParentTypeFor($type);
+            $parentClasses[$parentClass->toString()] ??= $this->for($parentClass);
 
-            return $this->for($parentClass)->methods->get($method->name);
+            return $parentClasses[$parentClass->toString()]->methods->get($method->name);
         }, $methods);
     }
 
