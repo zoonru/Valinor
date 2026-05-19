@@ -91,7 +91,6 @@
         }
     },
     "conflict": {
-        "vimeo/psalm": "<5.0 || >=7.0",
         "phpstan/phpstan": "<1.0 || >= 3.0"
     }
 }
