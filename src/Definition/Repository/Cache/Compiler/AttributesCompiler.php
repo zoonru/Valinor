@@ -19,6 +19,7 @@ final class AttributesCompiler
     public function compile(Attributes $attributes): string
     {
         if (count($attributes) === 0) {
+            // @infection-ignore-all
             return '\\' . Attributes::class . '::empty()';
         }
 

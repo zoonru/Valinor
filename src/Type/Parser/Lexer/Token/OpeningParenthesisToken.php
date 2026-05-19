@@ -17,7 +17,7 @@ final class OpeningParenthesisToken implements TraversingToken
     public function traverse(TokenStream $stream): Type
     {
         if ($stream->done()) {
-            throw new UnexpectedToken(')');
+            throw new UnexpectedToken('(');
         }
 
         $type = $stream->read();
