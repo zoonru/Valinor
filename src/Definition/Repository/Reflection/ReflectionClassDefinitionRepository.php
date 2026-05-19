@@ -187,18 +187,21 @@ final class ReflectionClassDefinitionRepository implements ClassDefinitionReposi
             $methods[] = $reflection->getMethod('__construct');
         }
 
-        return array_map(function (ReflectionMethod $method) use ($type, $typeResolver, &$parentClasses) {
+        $definitions = [];
+        foreach ($methods as $method) {
             $declaringClass = $method->getDeclaringClass();
 
             if ($declaringClass->name === $type->className()) {
-                return $this->methodBuilder->for($method, $typeResolver);
+                $definitions[] = $this->methodBuilder->for($method, $typeResolver);
+                continue;
             }
 
             $parentClass = $this->parentTypeResolver->resolveParentTypeFor($type);
             $parentClasses[$parentClass->toString()] ??= $this->for($parentClass);
 
-            return $parentClasses[$parentClass->toString()]->methods->get($method->name);
-        }, $methods);
+            $definitions[] = $parentClasses[$parentClass->toString()]->methods->get($method->name);
+        }
+        return $definitions;
     }
 
     private function shouldMethodBeIncluded(ReflectionMethod $method): bool
