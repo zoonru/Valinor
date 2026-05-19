@@ -43,15 +43,12 @@ final class ValueConverterNodeBuilder implements NodeBuilder
     {
         $attributes = $shell->attributes;
 
-        if ($this->canUseValueAsIs($shell)) {
-            return $shell->node($shell->value());
-        }
-
+        /*
         if ($shell->type instanceof ObjectType) {
             $class = $this->classDefinitionRepository->for($shell->type);
 
             $attributes = $attributes->merge($class->attributes);
-        }
+        }*/
 
         // @infection-ignore-all (This is a performance optimization, we don't test this)
         if ($attributes->count() === 0 && $this->converterContainer->converters() === []) {
@@ -150,21 +147,5 @@ final class ValueConverterNodeBuilder implements NodeBuilder
         }
 
         return $node->value();
-    }
-
-    private function canUseValueAsIs(Shell $shell): bool
-    {
-        if ($shell->attributes->count() !== 0 || $this->converterContainer->converters() !== []) {
-            return false;
-        }
-
-        if ($shell->type instanceof CompositeTraversableType
-            || $shell->type instanceof ShapedArrayType
-            || $shell->type instanceof ShapedListType
-        ) {
-            return false;
-        }
-
-        return $shell->type->accepts($shell->value());
     }
 }
