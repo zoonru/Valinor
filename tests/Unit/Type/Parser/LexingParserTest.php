@@ -1424,6 +1424,30 @@ final class LexingParserTest extends UnitTestCase
         self::assertSame('Invalid types in intersection `int&DateTimeInterface`, each element must be a class name or an interface name but found `int`.', $type->message());
     }
 
+    public function test_missing_closing_parens(): void
+    {
+        $type = $this->parse("('foo'|'bar'");
+
+        self::assertInstanceOf(UnresolvableType::class, $type);
+        self::assertSame('Unexpected token `)`, expected a valid type.', $type->message());
+    }
+
+    public function test_not_closing_parens(): void
+    {
+        $type = $this->parse("('foo'|'bar'(");
+
+        self::assertInstanceOf(UnresolvableType::class, $type);
+        self::assertSame('Unexpected token `)`, expected a valid type.', $type->message());
+    }
+
+    public function test_just_opening_parens(): void
+    {
+        $type = $this->parse("(");
+
+        self::assertInstanceOf(UnresolvableType::class, $type);
+        self::assertSame('Unexpected token `(`, expected a valid type.', $type->message());
+    }
+
     public function test_invalid_right_intersection_member_throws_exception(): void
     {
         $type = $this->parse('DateTimeInterface&int');
