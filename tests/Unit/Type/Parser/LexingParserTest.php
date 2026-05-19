@@ -1906,7 +1906,7 @@ final class LexingParserTest extends UnitTestCase
         $type = $this->parse("('foo'|'bar'");
 
         self::assertInstanceOf(UnresolvableType::class, $type);
-        self::assertSame('Unexpected token `)`, expected a valid type.', $type->message());
+        self::assertSame("Expected closing parenthesis after `'foo'|'bar'`.", $type->message());
     }
 
     public function test_not_closing_parens(): void
@@ -1914,7 +1914,7 @@ final class LexingParserTest extends UnitTestCase
         $type = $this->parse("('foo'|'bar'(");
 
         self::assertInstanceOf(UnresolvableType::class, $type);
-        self::assertSame('Unexpected token `)`, expected a valid type.', $type->message());
+        self::assertSame('Unexpected token `(`, expected a valid type.', $type->message());
     }
 
     public function test_just_opening_parens(): void

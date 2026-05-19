@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace CuyZ\Valinor\Type\Parser\Lexer\Token;
 
+use CuyZ\Valinor\Type\Parser\Exception\ExpectedClosingParenthesisAfterType;
 use CuyZ\Valinor\Type\Parser\Exception\UnexpectedToken;
 use CuyZ\Valinor\Type\Parser\Lexer\TokenStream;
 use CuyZ\Valinor\Type\Type;
@@ -22,8 +23,13 @@ final class OpeningParenthesisToken implements TraversingToken
 
         $type = $stream->read();
 
-        if ($stream->done() || ! $stream->forward() instanceof ClosingParenthesisToken) {
-            throw new UnexpectedToken(')');
+        if ($stream->done()) {
+            throw new ExpectedClosingParenthesisAfterType($type->toString());
+        }
+
+        $next = $stream->forward();
+        if (! $next instanceof ClosingParenthesisToken) {
+            throw new UnexpectedToken($next->symbol());
         }
 
         return $type;
