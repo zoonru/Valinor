@@ -13,11 +13,8 @@ use CuyZ\Valinor\Mapper\Tree\Exception\InvalidNodeValue;
 use CuyZ\Valinor\Mapper\Tree\Message\ErrorMessage;
 use CuyZ\Valinor\Mapper\Tree\Message\Message;
 use CuyZ\Valinor\Mapper\Tree\Shell;
-use CuyZ\Valinor\Type\CompositeTraversableType;
 use CuyZ\Valinor\Type\ObjectType;
 use CuyZ\Valinor\Type\Types\Generics;
-use CuyZ\Valinor\Type\Types\ShapedArrayType;
-use CuyZ\Valinor\Type\Types\ShapedListType;
 use CuyZ\Valinor\Type\Types\UnresolvableType;
 use Exception;
 use Throwable;
@@ -43,12 +40,11 @@ final class ValueConverterNodeBuilder implements NodeBuilder
     {
         $attributes = $shell->attributes;
 
-        /*
         if ($shell->type instanceof ObjectType) {
             $class = $this->classDefinitionRepository->for($shell->type);
 
             $attributes = $attributes->merge($class->attributes);
-        }*/
+        }
 
         // @infection-ignore-all (This is a performance optimization, we don't test this)
         if ($attributes->count() === 0 && $this->converterContainer->converters() === []) {

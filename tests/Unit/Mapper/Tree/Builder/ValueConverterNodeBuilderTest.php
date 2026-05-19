@@ -24,7 +24,7 @@ final class ValueConverterNodeBuilderTest extends UnitTestCase
 {
     public function test_already_valid_object_does_not_need_class_definition_when_no_converter_is_registered(): void
     {
-        $classDefinitionRepository = new class implements ClassDefinitionRepository {
+        $classDefinitionRepository = new class () implements ClassDefinitionRepository {
             public int $callCount = 0;
 
             public function for(ObjectType $type): ClassDefinition

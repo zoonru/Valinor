@@ -28,7 +28,6 @@ use CuyZ\Valinor\Type\Types\NativeClassType;
 use CuyZ\Valinor\Type\Types\UnresolvableType;
 use CuyZ\Valinor\Utility\Reflection\Annotations;
 use CuyZ\Valinor\Utility\Reflection\Reflection;
-use ReflectionClass;
 use ReflectionMethod;
 use ReflectionProperty;
 
@@ -73,7 +72,7 @@ final class ReflectionClassDefinitionRepository implements ClassDefinitionReposi
         $this->importedTypeAliasResolver = new ClassImportedTypeAliasResolver($this->typeParserFactory);
     }
 
-    public function for(ObjectType $type, bool $magic = false): ClassDefinition
+    public function for(ObjectType $type): ClassDefinition
     {
         $reflection = Reflection::class($type->className());
 
@@ -91,7 +90,8 @@ final class ReflectionClassDefinitionRepository implements ClassDefinitionReposi
             $reflection->name,
             $type,
             new Attributes(...$this->attributesRepository->for($reflection)),
-            new Properties(...$this->properties($type, $typeResolver, $magic)),
+            new Properties(...$this->properties($type, $typeResolver, false)),
+            new Properties(...$this->properties($type, $typeResolver, true)),
             new Methods(...$this->methods($type, $typeResolver)),
             $reflection->isFinal(),
             $reflection->isAbstract(),
@@ -149,7 +149,7 @@ final class ReflectionClassDefinitionRepository implements ClassDefinitionReposi
                 $isPublic = true;
                 $attributes = new Attributes();
 
-                $result []= new PropertyDefinition(
+                $result [] = new PropertyDefinition(
                     $name,
                     $signature,
                     $type,

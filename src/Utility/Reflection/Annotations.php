@@ -19,6 +19,7 @@ use function array_values;
 use function current;
 use function end;
 use function in_array;
+use function preg_match_all;
 use function preg_replace;
 use function str_starts_with;
 use function trim;
@@ -35,7 +36,7 @@ final class Annotations
             return;
         }
 
-        $docBlock = $this->sanitizeDocComment($docBlock);
+        $docBlock = self::sanitizeDocComment($docBlock);
 
         $tokens = (new TokensExtractor($docBlock))->all();
 
