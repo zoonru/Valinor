@@ -13,8 +13,11 @@ use CuyZ\Valinor\Mapper\Tree\Exception\InvalidNodeValue;
 use CuyZ\Valinor\Mapper\Tree\Message\ErrorMessage;
 use CuyZ\Valinor\Mapper\Tree\Message\Message;
 use CuyZ\Valinor\Mapper\Tree\Shell;
+use CuyZ\Valinor\Type\CompositeTraversableType;
 use CuyZ\Valinor\Type\ObjectType;
 use CuyZ\Valinor\Type\Types\Generics;
+use CuyZ\Valinor\Type\Types\ShapedArrayType;
+use CuyZ\Valinor\Type\Types\ShapedListType;
 use CuyZ\Valinor\Type\Types\UnresolvableType;
 use Exception;
 use Throwable;
@@ -39,6 +42,10 @@ final class ValueConverterNodeBuilder implements NodeBuilder
     public function build(Shell $shell): Node
     {
         $attributes = $shell->attributes;
+
+        if ($this->canUseValueAsIs($shell)) {
+            return $shell->node($shell->value());
+        }
 
         if ($shell->type instanceof ObjectType) {
             $class = $this->classDefinitionRepository->for($shell->type);
@@ -143,5 +150,21 @@ final class ValueConverterNodeBuilder implements NodeBuilder
         }
 
         return $node->value();
+    }
+
+    private function canUseValueAsIs(Shell $shell): bool
+    {
+        if ($shell->attributes->count() !== 0 || $this->converterContainer->converters() !== []) {
+            return false;
+        }
+
+        if ($shell->type instanceof CompositeTraversableType
+            || $shell->type instanceof ShapedArrayType
+            || $shell->type instanceof ShapedListType
+        ) {
+            return false;
+        }
+
+        return $shell->type->accepts($shell->value());
     }
 }

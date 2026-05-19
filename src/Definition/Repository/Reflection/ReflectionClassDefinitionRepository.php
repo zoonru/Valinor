@@ -163,6 +163,7 @@ final class ReflectionClassDefinitionRepository implements ClassDefinitionReposi
             return $result;
         }
         $properties = [];
+        $parentClasses = [];
 
         foreach ($reflection->getProperties() as $property) {
             $declaringClass = $property->getDeclaringClass();
@@ -171,8 +172,9 @@ final class ReflectionClassDefinitionRepository implements ClassDefinitionReposi
                 $properties[$property->name] = $this->propertyBuilder->for($property, $typeResolver);
             } else {
                 $parentClass = $this->parentTypeResolver->resolveParentTypeFor($type);
+                $parentClasses[$parentClass->toString()] ??= $this->for($parentClass);
 
-                $properties[$property->name] = $this->for($parentClass)->properties->get($property->name);
+                $properties[$property->name] = $parentClasses[$parentClass->toString()]->properties->get($property->name);
             }
         }
 
@@ -203,6 +205,7 @@ final class ReflectionClassDefinitionRepository implements ClassDefinitionReposi
     {
         $reflection = Reflection::class($type->className());
         $methods = array_filter($reflection->getMethods(), $this->shouldMethodBeIncluded(...));
+        $parentClasses = [];
 
         // Because `ReflectionMethod::getMethods()` wont list the constructor if
         // it comes from a parent class AND is not public, we need to manually
@@ -219,8 +222,9 @@ final class ReflectionClassDefinitionRepository implements ClassDefinitionReposi
             }
 
             $parentClass = $this->parentTypeResolver->resolveParentTypeFor($type);
+            $parentClasses[$parentClass->toString()] ??= $this->for($parentClass);
 
-            return $this->for($parentClass)->methods->get($method->name);
+            return $parentClasses[$parentClass->toString()]->methods->get($method->name);
         }, $methods);
     }
 

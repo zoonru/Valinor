@@ -1019,6 +1019,12 @@ final class LexingParserTest extends UnitTestCase
             'type' => UnionType::class,
         ];
 
+        yield 'Parenthesized union type' => [
+            'raw' => "('foo'|'bar')",
+            'transformed' => "'foo'|'bar'",
+            'type' => UnionType::class,
+        ];
+
         yield 'Intersection type' => [
             'raw' => 'stdClass&DateTimeInterface',
             'transformed' => 'stdClass&DateTimeInterface',
@@ -1041,6 +1047,12 @@ final class LexingParserTest extends UnitTestCase
             'raw' => ObjectWithConstants::class . '::CONST_WITH_INTEGER_VALUE_A',
             'transformed' => '1653398288',
             'type' => IntegerValueType::class,
+        ];
+
+        yield 'Class constant with null value' => [
+            'raw' => ObjectWithConstants::class . '::CONST_WITH_NULL_VALUE',
+            'transformed' => 'null',
+            'type' => NullType::class,
         ];
 
         yield 'Class constant with float value' => [
