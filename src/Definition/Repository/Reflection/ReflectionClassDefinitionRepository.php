@@ -145,6 +145,7 @@ final class ReflectionClassDefinitionRepository implements ClassDefinitionReposi
                 $properties[$property->name] = $this->propertyBuilder->for($property, $typeResolver);
             } else {
                 $parentClass = $this->parentTypeResolver->resolveParentTypeFor($type);
+                // @infection-ignore-all Just some memoization
                 $parentClasses[$parentClass->toString()] ??= $this->for($parentClass);
 
                 $properties[$property->name] = $parentClasses[$parentClass->toString()]->properties->get($property->name);
@@ -197,6 +198,7 @@ final class ReflectionClassDefinitionRepository implements ClassDefinitionReposi
             }
 
             $parentClass = $this->parentTypeResolver->resolveParentTypeFor($type);
+            // @infection-ignore-all Just some memoization
             $parentClasses[$parentClass->toString()] ??= $this->for($parentClass);
 
             $definitions[] = $parentClasses[$parentClass->toString()]->methods->get($method->name);
